@@ -11,6 +11,7 @@ export interface IStorage {
   saveCourse(course: InsertCourse): Promise<Course>;
   getUserCourses(userId: number | null): Promise<Course[]>;
   getCourse(id: number): Promise<Course | undefined>;
+  updateCourseProgress(id: number, currentCardIndex: number): Promise<Course | undefined>;
   
   // Learning card related methods
   saveLearningCards(cards: InsertLearningCard[]): Promise<LearningCard[]>;
@@ -59,7 +60,9 @@ export class MemStorage implements IStorage {
       ...course, 
       id,
       userId: course.userId ?? null,
-      saved: course.saved ?? null
+      saved: course.saved ?? null,
+      lastViewedAt: course.lastViewedAt ?? new Date().toISOString(),
+      currentCardIndex: course.currentCardIndex ?? 0
     };
     this.courses.set(id, newCourse);
     return newCourse;
@@ -78,6 +81,24 @@ export class MemStorage implements IStorage {
 
   async getCourse(id: number): Promise<Course | undefined> {
     return this.courses.get(id);
+  }
+  
+  async updateCourseProgress(id: number, currentCardIndex: number): Promise<Course | undefined> {
+    const course = this.courses.get(id);
+    
+    if (!course) {
+      return undefined;
+    }
+    
+    // Update the course with new progress
+    const updatedCourse: Course = {
+      ...course,
+      currentCardIndex,
+      lastViewedAt: new Date().toISOString()
+    };
+    
+    this.courses.set(id, updatedCourse);
+    return updatedCourse;
   }
 
   async saveLearningCards(cards: InsertLearningCard[]): Promise<LearningCard[]> {
@@ -152,6 +173,21 @@ export class DatabaseStorage implements IStorage {
     if (!db) return undefined;
     
     const [course] = await db.select().from(courses).where(eq(courses.id, id));
+    return course;
+  }
+
+  async updateCourseProgress(id: number, currentCardIndex: number): Promise<Course | undefined> {
+    if (!db) return undefined;
+    
+    const [course] = await db
+      .update(courses)
+      .set({
+        currentCardIndex,
+        lastViewedAt: new Date().toISOString()
+      })
+      .where(eq(courses.id, id))
+      .returning();
+      
     return course;
   }
 

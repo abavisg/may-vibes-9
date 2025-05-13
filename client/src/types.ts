@@ -18,6 +18,8 @@ export interface Course {
   userId: number | null;
   saved: boolean | null;
   createdAt: string;
+  lastViewedAt?: string | null;
+  currentCardIndex?: number | null;
 }
 
 export interface CourseState {

@@ -29,6 +29,8 @@ export const courses = pgTable("courses", {
   userId: integer("user_id").references(() => users.id),
   saved: boolean("saved").default(false),
   createdAt: text("created_at").notNull(),
+  lastViewedAt: text("last_viewed_at"),
+  currentCardIndex: integer("current_card_index").default(0),
 });
 
 export const insertLearningCardSchema = createInsertSchema(learningCards);

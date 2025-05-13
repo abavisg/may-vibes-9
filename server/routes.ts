@@ -94,6 +94,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+  
+  // API endpoint to update course progress
+  app.post("/api/course/:id/progress", async (req, res) => {
+    try {
+      const courseId = parseInt(req.params.id);
+      const { currentCardIndex } = req.body;
+      
+      if (isNaN(courseId)) {
+        return res.status(400).json({ message: "Invalid course ID" });
+      }
+      
+      if (typeof currentCardIndex !== 'number') {
+        return res.status(400).json({ message: "Invalid card index" });
+      }
+      
+      const updatedCourse = await storage.updateCourseProgress(courseId, currentCardIndex);
+      
+      if (!updatedCourse) {
+        return res.status(404).json({ message: "Course not found" });
+      }
+      
+      return res.json(updatedCourse);
+    } catch (error) {
+      console.error("Error updating course progress:", error);
+      return res.status(500).json({
+        message: error instanceof Error ? error.message : "Failed to update course progress"
+      });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
