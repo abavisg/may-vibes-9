@@ -1,0 +1,201 @@
+✅ Functional Requirements
+
+Requirement
+
+Editable Notes
+
+User can enter a topic of interest
+
+
+
+App generates a default of 10 learning “cards” per topic
+
+
+
+Each card includes a title, 2–3 kid-friendly paragraphs, and a fun fact
+
+
+
+Users can navigate between cards (Next/Previous)
+
+
+
+User can select or set an age group (e.g. 5–7, 8–10, 11–12)
+
+
+
+LLM prompt is adjusted based on selected age group
+
+
+
+Option to choose course length: Quick (5–7 cards), Standard (8–12 cards), Deep Dive (12–15 cards)
+
+
+
+Course length should adapt to age group by default
+
+
+
+Example: A 6-year-old gets a Quick (5–7 card) Titanic course with simple sentences and illustrations
+
+
+
+Example: A 9-year-old gets a Standard (8–12 card) Dinosaur course with fun facts and light quizzes
+
+
+
+Example: An 11-year-old gets a Deep Dive (12–15 card) History of Spaceflight course with timelines and deeper concepts
+
+
+
+Optional: Daily drip model (1 card per day) to encourage return visits
+
+
+
+Optional: Text-to-speech button to read cards aloud
+
+
+
+Optional: Save or revisit generated courses later
+
+
+
+Target age group: 5–12 years old
+
+
+
+🔧 Course Length Mapping by Age Group
+
+Course Type
+
+Card Range
+
+Recommended Ages
+
+Notes
+
+Quick
+
+5–7 cards
+
+Ages 5–7, 8–10
+
+Stays short and fun; great for young or impatient learners
+
+Standard
+
+8–12 cards
+
+Ages 8–12, 11–12
+
+Feels like a “real” course; enough to build a clear narrative
+
+Deep Dive
+
+12–15 cards
+
+Ages 11–12
+
+Great for ambitious learners; may need breaks or progress tracking
+
+🔍 User Journeys
+
+1. Kid-Driven Journey (Solo or with light adult help)
+
+Kid lands on homepage: "What do you want to learn about today?"
+
+Kid types a topic or chooses from suggestions
+
+App asks for age or age group (or lets them pick a fun avatar)
+
+Course length is auto-selected (Quick/Standard/Deep Dive)
+
+Learning cards are generated and displayed one-by-one
+
+Kid navigates cards, optionally uses read-aloud
+
+Option to save course or come back for daily learning
+
+2. Parent-Driven Journey
+
+Parent chooses: "Create a course for my child"
+
+Enters topic, selects age and course length (or uses default)
+
+Reviews first card
+
+Shares with child or sets up daily access
+
+Option to download/print/email
+
+3. Teacher Journey (Future enhancement)
+
+Teacher selects from safe topic list
+
+Creates courses tied to curriculum
+
+Shares with class or prints decks
+
+🌟 Onboarding Flow (MVP)
+
+1. Welcome Screen
+
+"Hi there! Ready to explore something new today?"
+
+Start button: "Start Learning"
+
+Link: "I'm a parent" (opens parent mode)
+
+2. Topic Input
+
+"What do you want to learn about?"
+
+Free input or clickable suggestions
+
+3. Age Group Selection
+
+"How old are you?"
+
+Age range buttons or avatar selection (5–7, 8–10, 11–12)
+
+4. Course Length (auto or ask)
+
+"We picked a [Quick/Standard/Deep Dive] course for you!"
+
+Short description shown (e.g. "5 short cards")
+
+Option to change length manually
+
+Then → Show first card
+
+⚙️ Non-Functional Requirements
+
+Requirement
+
+Editable Notes
+
+Cards should be readable in 3–5 minutes max
+
+
+
+Content must be appropriate, safe, and simple for kids
+
+
+
+UI must be minimal, friendly, and touch-device compatible
+
+
+
+Age group selection should influence vocabulary and tone
+
+
+
+Use a small, fast LLM (or local model) if possible
+
+
+
+App should work smoothly without requiring sign-up (MVP)
+
+
+
+Add light theming or visuals (e.g. avatars, icons) to make it engaging
