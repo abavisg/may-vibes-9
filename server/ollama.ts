@@ -24,20 +24,106 @@ const aiCardsSchema = z.array(z.object({
     funFact: z.string().optional()
 }));
 
-// Fallback generator function for when Ollama fails
-function generateFallbackCards(topic: string, ageGroup: string, courseLength: string): Omit<LearningCard, 'id' | 'userId' | 'saved' | 'createdAt' | 'lastViewedAt' | 'currentCardIndex' | 'cards'>[] {
-  const numCards = COURSE_LENGTH_CARDS[courseLength as keyof typeof COURSE_LENGTH_CARDS] || 5;
-  const cards = [];
+// Function to repair malformed JSON
+function repairJson(text: string): string {
+  console.log("Attempting to repair malformed JSON");
   
-  for (let i = 1; i <= numCards; i++) {
-    cards.push({
-      title: `${topic} - Part ${i}`,
-      content: `This is a placeholder card for "${topic}" created when Ollama was unavailable. Please try again later to get AI-generated content.`,
-      funFact: null
-    });
+  // Store the original text in case we need it
+  const originalText = text;
+  
+  try {
+    // Step 1: Clean up common issues
+    let repairedText = text
+      // Fix property names: ensure they have double quotes
+      .replace(/([{,]\s*)([a-zA-Z0-9_]+)(\s*:)/g, '$1"$2"$3')
+      // Fix trailing commas in objects
+      .replace(/,\s*}/g, '}')
+      // Fix trailing commas in arrays
+      .replace(/,\s*\]/g, ']')
+      // Fix missing commas between properties
+      .replace(/}(\s*){/g, '},\n$1{')
+      // Fix single quotes to double quotes for property values
+      .replace(/"([^"]+)":\s*'([^']+)'/g, '"$1": "$2"')
+      // Fix single quotes for property values (when property has double quotes)
+      .replace(/:\s*'([^']+)'/g, ': "$1"')
+      // Fix unquoted string values
+      .replace(/:\s*([a-zA-Z][a-zA-Z0-9_\s]+)([,}])/g, ': "$1"$2');
+
+    // Step 2: Look for the array pattern [...]
+    const arrayMatch = repairedText.match(/\[\s*\{[\s\S]*\}\s*\]/);
+    if (arrayMatch) {
+      repairedText = arrayMatch[0];
+    }
+    
+    // Step 3: Validate our repaired JSON by trying to parse it
+    try {
+      JSON.parse(repairedText);
+      console.log("JSON successfully repaired");
+      return repairedText;
+    } catch (parseError) {
+      // If standard repair doesn't work, try more aggressive approaches
+      console.log("Standard repair failed, trying advanced repair");
+      
+      // Step 4: Extract individual objects and rebuild the array
+      const objects: string[] = [];
+      let objStartIndex = repairedText.indexOf('{');
+      
+      while (objStartIndex !== -1) {
+        let openBraces = 1;
+        let objEndIndex = objStartIndex + 1;
+        
+        // Find the matching closing brace
+        while (openBraces > 0 && objEndIndex < repairedText.length) {
+          if (repairedText[objEndIndex] === '{') openBraces++;
+          if (repairedText[objEndIndex] === '}') openBraces--;
+          objEndIndex++;
+        }
+        
+        if (openBraces === 0) {
+          // We found a complete object
+          let obj = repairedText.substring(objStartIndex, objEndIndex);
+          
+          // Further clean up the individual object
+          obj = obj
+            .replace(/([{,]\s*)([a-zA-Z0-9_]+)(\s*:)/g, '$1"$2"$3')
+            .replace(/:\s*'([^']+)'/g, ': "$1"')
+            .replace(/:\s*([a-zA-Z][a-zA-Z0-9_\s]+)([,}])/g, ': "$1"$2');
+          
+          // Try to parse the individual object
+          try {
+            JSON.parse(obj);
+            objects.push(obj);
+          } catch (e) {
+            console.log(`Skipping invalid object: ${obj.substring(0, 50)}...`);
+          }
+          
+          // Look for the next object
+          objStartIndex = repairedText.indexOf('{', objEndIndex);
+        } else {
+          // No matching closing brace found
+          break;
+        }
+      }
+      
+      if (objects.length > 0) {
+        // Rebuild the array with valid objects
+        const rebuiltArray = `[${objects.join(',')}]`;
+        try {
+          JSON.parse(rebuiltArray);
+          console.log(`JSON array rebuilt with ${objects.length} valid objects`);
+          return rebuiltArray;
+        } catch (rebuildError) {
+          console.log("Failed to rebuild array:", rebuildError);
+        }
+      }
+      
+      console.log("All repair attempts failed");
+      throw new Error("Unable to repair malformed JSON");
+    }
+  } catch (error) {
+    console.error("Error during JSON repair:", error);
+    throw error;
   }
-  
-  return cards;
 }
 
 // Function to generate learning cards using Ollama
@@ -121,7 +207,6 @@ Return ONLY the JSON array, nothing else.`;
       const cleanedContent = response.message.content.replace(/[\u0000-\u001F\u007F-\u009F]/g, '');
       console.log("Cleaned response content");
 
-      // Simplified extraction approach: find the first [ and last ]
       try {
         console.log("Attempting to extract JSON");
         let jsonContent = cleanedContent;
@@ -152,8 +237,21 @@ Return ONLY the JSON array, nothing else.`;
         }
         
         console.log("Attempting to parse JSON...");
-        const cardsData = JSON.parse(jsonContent);
-        console.log("JSON parsed successfully");
+        
+        // First try normal parsing
+        let cardsData;
+        try {
+          cardsData = JSON.parse(jsonContent);
+          console.log("JSON parsed successfully");
+        } catch (parseError) {
+          console.error("Initial JSON parsing failed:", parseError);
+          console.log("Trying to repair JSON...");
+          
+          // If parsing fails, try to repair the JSON
+          const repairedJson = repairJson(jsonContent);
+          cardsData = JSON.parse(repairedJson);
+          console.log("Successfully parsed repaired JSON");
+        }
         
         console.log("Validating data with Zod schema...");
         const validatedCards = aiCardsSchema.parse(cardsData);
@@ -169,64 +267,23 @@ Return ONLY the JSON array, nothing else.`;
         // Success! Return the cards and exit the function
         console.log(`Successfully generated ${formattedCards.length} cards`);
         return formattedCards;
-        
       } catch (jsonError) {
         console.error("Error extracting or parsing JSON:", jsonError);
         
-        // Simpler fallback: Extract anything that looks remotely like a JSON array
-        console.log("Trying simpler extraction approach");
-        try {
-          // Last-ditch effort: Try to make it valid JSON by wrapping content in an array
-          // and adding quotes to property names as needed
-          const fixedContent = cleanedContent
-            .replace(/(['"])?([a-zA-Z0-9_]+)(['"])?:/g, '"$2":') // Fix property names
-            .replace(/:\s*'([^']*)'/g, ':"$1"'); // Replace single quotes with double quotes
-          
-          // Log a sample of the fixed content
-          console.log("Sample of fixed content:", fixedContent.substring(0, 100) + "...");
-          
-          // Try simple pre-processing: find anything between brackets and try to parse it
-          // Using multiline flag instead of 's' flag for compatibility
-          const bracketMatch = fixedContent.match(/\[\s*\{[\s\S]+\}\s*\]/);
-          if (bracketMatch) {
-            console.log("Found potential array with bracket match");
-            try {
-              const extractedData = JSON.parse(bracketMatch[0]);
-              console.log("Successfully parsed bracket match data");
-              
-              const validatedCards = aiCardsSchema.parse(extractedData);
-              console.log("Validation successful for bracket match");
-              
-              // Map validated data to the required structure
-              const formattedCards = validatedCards.map(card => ({
-                  title: card.title,
-                  content: card.content,
-                  funFact: card.funFact === undefined ? null : card.funFact
-              }));
-              
-              console.log(`Successfully generated ${formattedCards.length} cards after simple fixing`);
-              return formattedCards;
-            } catch (bracketError) {
-              console.error("Failed to parse bracket match:", bracketError);
-            }
-          }
-          
-          // If we're still here, generate fallback cards instead of trying more complex parsing
-          console.log("All JSON parsing attempts failed, using fallback cards");
-          throw new Error("JSON parsing failed");
-        } catch (fallbackError) {
-          console.error("Fallback extraction failed:", fallbackError);
-          throw new Error("Could not extract valid JSON structure");
-        }
+        // Log full error content for debugging
+        console.log("Full cleaned content (for debugging):", cleanedContent);
+        
+        // After all attempts at repair have failed, throw a clear error
+        throw new Error("Failed to parse or repair JSON from Ollama response");
       }
       
     } catch (error) {
       console.error(`Attempt ${retries + 1}/${maxRetries + 1} failed:`, error);
       
-      // If this was our last retry, return fallback cards
+      // If this was our last retry, throw the error
       if (retries >= maxRetries) {
-        console.error("All retry attempts failed, generating fallback cards");
-        return generateFallbackCards(topic, ageGroup, courseLength);
+        console.error("All retry attempts failed");
+        throw new Error(`Failed to generate cards after ${maxRetries + 1} attempts: ${error instanceof Error ? error.message : String(error)}`);
       }
       
       // Wait before retrying (exponential backoff)
@@ -239,6 +296,5 @@ Return ONLY the JSON array, nothing else.`;
   }
   
   // This code should never be reached but is required by TypeScript
-  console.log("Reached fallback return - this should never happen");
-  return generateFallbackCards(topic, ageGroup, courseLength);
+  throw new Error("Unexpected end of generateLearningCards function");
 }
