@@ -6,19 +6,35 @@ import { useSavedCourses } from "@/hooks/use-saved-courses";
 import { useCourseState } from "@/hooks/use-course-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { downloadCourseAsPdf, printCourse } from "@/lib/pdf-export";
+import { CardScreen } from "@/components/layout/card-screen";
+import { Progress } from "@/components/ui/progress";
+import { LearningCard } from "@/components/ui/learning-card";
+import { speakCard, stopSpeech, isSpeaking } from "@/lib/text-to-speech";
+import type { CourseState, Course } from "@/types";
+import { useToast } from "@/hooks/use-toast";
 
 export default function SavedCourses() {
-  const { courses, selectedCourse, isLoading, selectCourse, fetchCourses } = useSavedCourses();
-  const { loadCourse } = useCourseState();
-  const [viewMode, setViewMode] = useState<"list" | "detail">("list");
+  const { courses, selectedCourse, isLoading, selectCourse, fetchCourses, isError, updateCourseProgress } = useSavedCourses();
+  const { loadCourse, state: courseState } = useCourseState();
+  const [viewMode, setViewMode] = useState<"list" | "detail" | "cards">("list");
   const [, navigate] = useLocation();
+  const [isLoadingCourseDetail, setIsLoadingCourseDetail] = useState(false);
+  const { toast } = useToast();
+  
+  // State for embedded card display
+  const [activeCourse, setActiveCourse] = useState<CourseState | null>(null);
+  const [currentCardIndex, setCurrentCardIndex] = useState(0);
+  const [isSpeakingNow, setIsSpeakingNow] = useState(false);
+  const [isNewProgress, setIsNewProgress] = useState(false);
+  const [courseSaved, setCourseSaved] = useState(false);
 
   // Reset view mode when navigating away and fetch courses when component mounts
   useEffect(() => {
     fetchCourses(); // Explicitly fetch courses when component mounts
     
     return () => {
-      setViewMode("list");
+      setViewMode("list"); // Reset view mode on unmount
+      setActiveCourse(null); // Clear active course on unmount
     };
   }, [fetchCourses]);
 
@@ -32,32 +48,88 @@ export default function SavedCourses() {
     });
   };
 
-  // Function to handle course selection
+  // Function to handle course selection - transition to detail view
   const handleSelectCourse = (courseId: number) => {
+    setIsLoadingCourseDetail(true);
     selectCourse(courseId);
-    setViewMode("detail");
+    setViewMode("detail"); // Move to detail view immediately
   };
+
+  // Watch for selectedCourse changes and set activeCourse
+  useEffect(() => {
+    if (selectedCourse) {
+      console.log("Selected course loaded:", selectedCourse);
+      setIsLoadingCourseDetail(false);
+      
+      // Convert the Course to CourseState format and set activeCourse
+      setActiveCourse({
+        id: selectedCourse.id,
+        topic: selectedCourse.topic,
+        ageGroup: selectedCourse.ageGroup as any,
+        courseLength: selectedCourse.courseLength as any,
+        cards: selectedCourse.cards || [],
+        currentCardIndex: selectedCourse.currentCardIndex || 0, // Keep the saved index initially
+        isLoading: false,
+        totalCards: Array.isArray(selectedCourse.cards) ? selectedCourse.cards.length : 0
+      });
+      
+      // Do NOT set viewMode to "cards" here. It will be set by handleCourseStart or handleRestartCourse
+      setCurrentCardIndex(selectedCourse.currentCardIndex || 0); // Set initial card index from saved progress
+      setIsSpeakingNow(false);
+      setIsNewProgress(false);
+      setCourseSaved(false);
+    }
+  }, [selectedCourse]);
+
+  // Check if this is new progress (beyond what was previously saved)
+  useEffect(() => {
+    if (activeCourse && selectedCourse) {
+      const previousMaxIndex = selectedCourse.currentCardIndex || 0;
+      const isNewlyViewedCard = currentCardIndex > previousMaxIndex;
+      setIsNewProgress(isNewlyViewedCard);
+      
+      // Reset saved status when moving to a new card beyond previous progress
+      if (isNewlyViewedCard) {
+        setCourseSaved(false);
+      }
+    }
+  }, [currentCardIndex, activeCourse, selectedCourse]);
 
   // Function to go back to list view
   const handleBackToList = () => {
     setViewMode("list");
+    setActiveCourse(null); // Clear active course state
+    // No need to reset selectedCourse here, useSavedCourses hook manages it
   };
 
-  // Function to start course from beginning
-  const handleStartFromBeginning = () => {
-    if (selectedCourse) {
-      loadCourse(selectedCourse, true);
-      // Use navigate instead of direct URL
-      navigate("/cards");
+  // Function to handle starting or resuming a course
+  const handleCourseStart = () => {
+    if (activeCourse && selectedCourse && !isLoadingCourseDetail) {
+      console.log("Opening course:", activeCourse.topic);
+      // activeCourse is already set with the saved index in the useEffect above
+      console.log("Starting from card:", selectedCourse.currentCardIndex ?? 0);
+      
+      // Switch to cards view
+      setViewMode("cards");
+      // currentCardIndex is already set correctly in the useEffect watching selectedCourse
+    } else {
+      console.log("Cannot start - course data isn't fully loaded yet");
     }
   };
 
-  // Function to resume course from where left off
-  const handleResumeCourse = () => {
-    if (selectedCourse) {
-      loadCourse(selectedCourse, false);
-      // Use navigate instead of direct URL
-      navigate("/cards");
+  // Function to handle restarting a completed course from the beginning
+  const handleRestartCourse = () => {
+    if (activeCourse && selectedCourse && !isLoadingCourseDetail) {
+      console.log("Restarting course:", activeCourse.topic);
+      console.log("Starting from card: 0");
+      
+      // Set currentCardIndex to 0 for restart
+      setCurrentCardIndex(0);
+      
+      // Switch to cards view
+      setViewMode("cards");
+    } else {
+      console.log("Cannot restart - course data isn't fully loaded yet");
     }
   };
 
@@ -75,222 +147,277 @@ export default function SavedCourses() {
     }
   };
 
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold text-primary">
-          {viewMode === "list" ? "My Saved Courses" : "Course Details"}
-        </h1>
-        <Link href="/">
-          <Button variant="outline" className="flex items-center gap-2">
-            <i className="ri-home-line"></i>
-            Back to Home
+  // Function to handle reading aloud
+  const handleReadAloud = () => {
+    if (!activeCourse || !activeCourse.cards || !activeCourse.cards[currentCardIndex]) return;
+
+    if (isSpeakingNow) {
+      stopSpeech();
+      setIsSpeakingNow(false);
+    } else {
+      const card = activeCourse.cards[currentCardIndex];
+      speakCard(card.title, card.content);
+      setIsSpeakingNow(true);
+    }
+  };
+
+  // Function to handle saving the current course with updated progress
+  const handleSaveCourse = () => {
+    if (!activeCourse || !selectedCourse || typeof activeCourse.id !== 'number') return;
+    
+    // Save the course with updated progress
+    updateCourseProgress(activeCourse.id, currentCardIndex);
+    setCourseSaved(true);
+    
+    // Show success message
+    toast({
+      title: "Progress saved",
+      description: `Saved your progress on "${activeCourse.topic}" at card ${currentCardIndex + 1}`,
+    });
+  };
+
+  // Function to handle going back from cards view to detail view
+  const handleBackFromCards = () => {
+    setViewMode("detail");
+  };
+
+  // Function to handle going to the next card
+  const nextCard = () => {
+    if (activeCourse && currentCardIndex < activeCourse.cards.length - 1) {
+      setCurrentCardIndex(currentCardIndex + 1);
+    }
+  };
+
+  // Function to handle going to the previous card
+  const prevCard = () => {
+    if (activeCourse && currentCardIndex > 0) {
+      setCurrentCardIndex(currentCardIndex - 1);
+    }
+  };
+
+  // Calculate progress for the detail view
+  const detailViewProgress = selectedCourse ? ((selectedCourse.currentCardIndex ?? 0) / (Array.isArray(selectedCourse.cards) ? selectedCourse.cards.length : 1)) * 100 : 0;
+  const isCompleted = selectedCourse && selectedCourse.cards && (selectedCourse.currentCardIndex ?? 0) >= selectedCourse.cards.length;
+
+  // Render cards view directly within this component
+  if (viewMode === "cards" && activeCourse) {
+    const progressPercentage = ((currentCardIndex + 1) / activeCourse.cards.length) * 100;
+    const currentCard = activeCourse.cards[currentCardIndex];
+  
+    return (
+      <div className="flex-1 flex flex-col items-center justify-between p-4 md:p-6">
+        {/* Top bar */}
+        <div className="w-full flex justify-between items-center mb-4">
+          <div className="flex items-center gap-4">
+            <Button 
+              variant="link"
+              className="text-primary flex items-center font-semibold p-0"
+              onClick={handleBackFromCards}
+            >
+              <i className="ri-arrow-left-line mr-1"></i> Back
+            </Button>
+            
+            <Link href="/">
+              <Button 
+                variant="link"
+                className="text-primary flex items-center font-semibold p-0"
+              >
+                <i className="ri-home-line mr-1"></i> Home
+              </Button>
+            </Link>
+          </div>
+          
+          <div className="flex items-center">
+            <span className="font-bold text-lg mr-2">{activeCourse.topic}</span>
+            <span className="bg-primary/10 text-primary px-2 py-1 text-xs rounded-full font-medium">
+              Ages {activeCourse.ageGroup}
+            </span>
+          </div>
+          
+          <Button
+            variant={isSpeakingNow ? "secondary" : "link"}
+            className={`flex items-center font-semibold p-0 ${isSpeakingNow ? 'bg-primary/10 px-3 py-1 rounded' : 'text-primary'}`}
+            onClick={handleReadAloud}
+          >
+            <i className={`${isSpeakingNow ? 'ri-stop-circle-line' : 'ri-volume-up-line'} mr-1`}></i> 
+            {isSpeakingNow ? 'Stop' : 'Read'}
           </Button>
-        </Link>
-      </div>
-
-      {viewMode === "list" ? (
-        // List View
-        <>
-          {isLoading ? (
-            // Loading state
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {Array.from({ length: 3 }).map((_, index) => (
-                <Card key={index} className="overflow-hidden h-64">
-                  <CardHeader className="pb-2">
-                    <Skeleton className="h-8 w-3/4 mb-2" />
-                    <Skeleton className="h-4 w-1/2" />
-                  </CardHeader>
-                  <CardContent>
-                    <Skeleton className="h-24 w-full" />
-                    <div className="flex justify-between mt-4">
-                      <Skeleton className="h-6 w-20" />
-                      <Skeleton className="h-6 w-24" />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : courses.length === 0 ? (
-            // Empty state
-            <div className="text-center py-16 bg-gray-50 rounded-lg">
-              <div className="text-6xl mb-4 text-gray-300">
-                <i className="ri-inbox-line"></i>
-              </div>
-              <h3 className="text-xl font-semibold mb-2">No Saved Courses</h3>
-              <p className="text-gray-500 mb-6">You haven't saved any courses yet.</p>
-              <Link href="/">
-                <Button>Start Learning Now</Button>
-              </Link>
-            </div>
-          ) : (
-            // Courses grid
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {courses.map(course => (
-                <Card 
-                  key={course.id} 
-                  className="overflow-hidden h-full cursor-pointer hover:shadow-lg transition-shadow"
-                  onClick={() => handleSelectCourse(course.id)}
-                >
-                  <CardHeader className="bg-primary/5 pb-2">
-                    <CardTitle className="text-xl">{course.topic}</CardTitle>
-                    <CardDescription>
-                      Created {formatDate(course.createdAt)}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="pt-4">
-                    <div className="mb-4">
-                      <p className="text-sm text-gray-500">
-                        {Array.isArray(course.cards) ? course.cards.length : '?'} learning cards
-                      </p>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${getAgeGroupColor(course.ageGroup)}`}>
-                        Ages {course.ageGroup}
-                      </span>
-                      <span className="text-sm font-medium capitalize text-gray-600">
-                        {course.courseLength} course
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </>
-      ) : (
-        // Detail View
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          {!selectedCourse ? (
-            <div className="p-8 text-center">
-              <Skeleton className="h-8 w-1/2 mx-auto mb-4" />
-              <Skeleton className="h-4 w-1/3 mx-auto mb-8" />
-              <Skeleton className="h-40 w-full max-w-2xl mx-auto" />
-            </div>
-          ) : (
-            <>
-              <div className="bg-gradient-to-r from-primary/20 to-primary/5 p-6">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="mb-4"
-                  onClick={handleBackToList}
-                >
-                  <i className="ri-arrow-left-line mr-2"></i>
-                  Back to courses
-                </Button>
-                <h2 className="text-2xl font-bold mb-2">{selectedCourse.topic}</h2>
-                <div className="flex items-center gap-3">
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${getAgeGroupColor(selectedCourse.ageGroup)}`}>
-                    Ages {selectedCourse.ageGroup}
-                  </span>
-                  <span className="text-sm font-medium capitalize">
-                    {selectedCourse.courseLength} course
-                  </span>
-                  <span className="text-sm text-gray-600">
-                    Created {formatDate(selectedCourse.createdAt)}
-                  </span>
-                </div>
-              </div>
-              
-              <div className="p-6">
-                <h3 className="text-lg font-semibold mb-4">Course Cards</h3>
-                <div className="space-y-4">
-                  {Array.isArray(selectedCourse.cards) ? (
-                    selectedCourse.cards.map((card: any, index: number) => (
-                      <Card key={card.id || index} className="overflow-hidden">
-                        <CardHeader className="bg-amber-50 pb-2">
-                          <CardTitle className="text-lg">{card.title}</CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-4">
-                          <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: card.content }} />
-                          <div className="mt-4 bg-green-50 p-3 rounded-md border-l-4 border-green-300">
-                            <p className="font-semibold text-green-700">Fun Fact!</p>
-                            <p className="text-green-800">{card.funFact}</p>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))
-                  ) : (
-                    <p className="text-gray-500 italic">No cards available</p>
-                  )}
-                </div>
-              </div>
-              
-              <div className="p-6 bg-gray-50 border-t">
-                <div className="flex flex-wrap gap-4 justify-between items-center">
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      className="bg-primary text-white flex items-center gap-2"
-                      onClick={handleStartFromBeginning}
-                    >
-                      <i className="ri-play-circle-line"></i>
-                      Start from Beginning
-                    </Button>
-
-                    <Button
-                      variant="secondary"
-                      className="flex items-center gap-2"
-                      onClick={handleResumeCourse}
-                      disabled={!selectedCourse?.currentCardIndex}
-                    >
-                      <i className="ri-history-line"></i>
-                      Resume
-                      {selectedCourse?.currentCardIndex ? 
-                        ` (Card ${selectedCourse.currentCardIndex + 1})` : 
-                        ""}
-                    </Button>
-                  </div>
-                  
-                  <div className="flex flex-wrap gap-2">
-                    <Button 
-                      variant="outline" 
-                      className="flex items-center gap-2"
-                      onClick={() => selectedCourse && printCourse(selectedCourse)}
-                    >
-                      <i className="ri-printer-line"></i>
-                      Print
-                    </Button>
-                    
-                    <Button 
-                      variant="outline" 
-                      className="flex items-center gap-2"
-                      onClick={() => selectedCourse && downloadCourseAsPdf(selectedCourse)}
-                    >
-                      <i className="ri-download-line"></i>
-                      Download
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Added navigation buttons at the bottom */}
-              <div className="p-6 border-t bg-white">
-                <div className="flex justify-between">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={handleBackToList}
-                  >
-                    <i className="ri-arrow-left-line mr-2"></i>
-                    Back to courses
-                  </Button>
-                  
-                  <Link href="/">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                    >
-                      Create New Course
-                      <i className="ri-add-line ml-2"></i>
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </>
-          )}
         </div>
-      )}
+
+        {/* Card progress */}
+        <div className="w-full max-w-3xl">
+          <div className="flex justify-between items-center mb-2 px-2">
+            <span className="text-sm text-neutral-700">
+              Card {currentCardIndex + 1} of {activeCourse.cards.length}
+            </span>
+            {isNewProgress && (
+              <span className="text-sm text-amber-500">
+                <i className="ri-alert-line mr-1"></i> New progress - don't forget to save!
+              </span>
+            )}
+          </div>
+          <Progress value={progressPercentage} className="h-2" />
+        </div>
+
+        {/* Learning Card */}
+        <div className="flex-grow flex items-center justify-center w-full max-w-3xl py-4">
+          <LearningCard card={currentCard} />
+        </div>
+
+        {/* Navigation buttons */}
+        <div className="w-full flex justify-between max-w-3xl">
+          <Button 
+            onClick={prevCard} 
+            disabled={currentCardIndex === 0}
+            variant="secondary"
+          >
+            Previous
+          </Button>
+          <Button 
+            onClick={nextCard}
+            disabled={currentCardIndex === (activeCourse.cards.length - 1)}
+            variant="secondary"
+          >
+            Next
+          </Button>
+        </div>
+
+        {/* Save Progress Button */}
+        {isNewProgress && !courseSaved && (
+          <Button
+            onClick={handleSaveCourse}
+            className="mt-4 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded"
+          >
+            <i className="ri-save-line mr-2"></i> Save Progress
+          </Button>
+        )}
+
+        {/* Restart Button (Optional in cards view, perhaps add later if needed) */}
+        {/* <Button onClick={handleRestartCourse}>Restart Course</Button> */}
+      </div>
+    );
+  }
+
+  // Render detail view
+  if (viewMode === "detail" && selectedCourse) {
+    return (
+      <div className="flex-1 flex flex-col items-center p-6">
+        <div className="w-full max-w-2xl">
+          <Button 
+            variant="link"
+            className="text-primary flex items-center font-semibold p-0 mb-4"
+            onClick={handleBackToList}
+          >
+            <i className="ri-arrow-left-line mr-1"></i> Back to Saved Courses
+          </Button>
+
+          <h2 className="text-3xl font-bold mb-4">{selectedCourse.topic}</h2>
+          
+          <div className="flex items-center text-sm text-muted-foreground mb-4 space-x-4">
+            <span>Ages: {selectedCourse.ageGroup}</span>
+            <span>Length: {selectedCourse.courseLength} cards</span>
+            <span>Created: {formatDate(selectedCourse.createdAt)}</span>
+          </div>
+          
+          {/* Progress Bar in Detail View */}
+          {selectedCourse.cards && selectedCourse.cards.length > 0 && (
+            <div className="mb-4">
+              <div className="flex justify-between text-sm text-neutral-700 mb-1">
+                <span>Progress: {selectedCourse.currentCardIndex ?? 0} / {selectedCourse.cards.length} cards</span>
+                <span>{detailViewProgress.toFixed(0)}%</span>
+              </div>
+              <Progress value={detailViewProgress} className="h-2" />
+            </div>
+          )}
+
+          {/* Start/Resume/Restart Buttons */}
+          {isLoadingCourseDetail ? (
+            <Skeleton className="h-10 w-48" />
+          ) : (
+            <div className="flex space-x-4 mt-6">
+              {isCompleted ? (
+                <Button onClick={handleRestartCourse} size="lg">
+                  <i className="ri-refresh-line mr-2"></i> Start from Beginning
+                </Button>
+              ) : (
+                <Button onClick={handleCourseStart} size="lg">
+                   <i className="ri-play-line mr-2"></i> {selectedCourse.currentCardIndex && selectedCourse.currentCardIndex > 0 ? "Resume Course" : "Start Course"}
+                </Button>
+              )}
+              {/* Add other actions like export here later if needed */}
+              <Button variant="outline" onClick={() => downloadCourseAsPdf(selectedCourse)}>
+                 <i className="ri-download-line mr-2"></i> Download PDF
+              </Button>
+               <Button variant="outline" onClick={() => printCourse(selectedCourse)}>
+                 <i className="ri-printer-line mr-2"></i> Print Course
+              </Button>
+            </div>
+          )}
+
+        </div>
+      </div>
+    );
+  }
+
+  // Render list view (default)
+  return (
+    <div className="flex-1 flex flex-col items-center p-6">
+      <div className="w-full max-w-2xl">
+        <h1 className="text-3xl font-bold mb-6">My Saved Courses</h1>
+        
+        {isLoading ? (
+          <div className="space-y-4">
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-24 w-full" />
+          </div>
+        ) : isError ? (
+           <div className="text-center py-8 text-red-600">
+            <p className="text-lg">Error loading courses. Please try again later.</p>
+          </div>
+        ) : courses.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-lg text-muted-foreground">No saved courses yet.</p>
+            <Link href="/">
+              <Button className="mt-4">Create New Course</Button>
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {courses.map((course) => (
+              <Card 
+                key={course.id}
+                className="cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => handleSelectCourse(course.id)}
+              >
+                <CardHeader>
+                  <CardTitle>{course.topic}</CardTitle>
+                  <CardDescription>
+                    <span className={`inline-block text-xs px-2 py-1 rounded-full font-medium mr-2 ${getAgeGroupColor(course.ageGroup)}`}>
+                      Ages {course.ageGroup}
+                    </span>
+                     <span className="text-sm text-muted-foreground">
+                      {course.courseLength} cards
+                    </span>
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                   {/* Display progress in the list view */}
+                   {course.cards && course.cards.length > 0 && (
+                     <div className="w-full mt-2">
+                       <div className="flex justify-between text-xs text-neutral-600 mb-1">
+                         <span>Progress: {course.currentCardIndex ?? 0} / {course.cards.length}</span>
+                         <span>{(((course.currentCardIndex ?? 0) / course.cards.length) * 100).toFixed(0)}%</span>
+                       </div>
+                       <Progress value={((course.currentCardIndex ?? 0) / course.cards.length) * 100} className="h-1" />
+                     </div>
+                   )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

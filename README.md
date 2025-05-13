@@ -11,7 +11,7 @@ This project is a web application with a React frontend and an Express.js backen
 - **Save Courses** – Allows saving course information for later access.
 - **Retrieve Courses** – Fetch saved courses, potentially filtered by user ID.
 - **Course Progress Tracking** – Track and update the current position in a course.
-- **Resume Learning** – Option to resume from where you left off or start over.
+- **Integrated Resume & Start Functionality** – Resume from where you left off or start from the beginning, all from the Saved Courses screen.
 - **Daily Learning Mode** – Schedule cards for daily review.
 - **Age-Appropriate Content** – Customized learning material for different age groups.
 - **Text-to-Speech** – Read cards aloud for better accessibility.
@@ -55,11 +55,12 @@ The project follows a client-server architecture. The client is a React applicat
 - Configurable Ollama integration with environment variables for host and model.
 - Request timeout handling and retry mechanism for Ollama calls.
 - Text-to-speech functionality for reading cards aloud.
-- Course saving and resuming functionality, including progress tracking.
+- Unified course management with integrated save, resume, and restart functionality.
 - Fixed navigation between card screens and parent views.
 - Age-appropriate content styling and customization.
 - Daily learning mode for scheduled card review.
 - Export functionality for downloading or printing courses.
+- Self-contained card viewer with local state management for improved navigation experience.
 
 **Remaining Work:**
 - **User Authentication and Authorization:** Implement secure user authentication on the backend and integrate authentication status and token handling on the client-side to protect routes and data.

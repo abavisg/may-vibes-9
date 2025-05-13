@@ -6,7 +6,6 @@ import CourseLength from "@/components/ui/course-length";
 import { CardScreen } from "@/components/layout/card-screen";
 import { ParentMode } from "@/components/ui/parent-mode";
 import { DailyView } from "@/components/ui/daily-view";
-import { ResumableCourses } from "@/components/layout/ResumableCourses";
 import { useCourseState } from "@/hooks/use-course-state";
 import { hasUnviewedCards } from "@/lib/daily-cards";
 import type { Course } from "@/types";
@@ -20,7 +19,6 @@ enum Screen {
   Cards = "cards",
   Parent = "parent",
   Daily = "daily",
-  Resumable = "resumable",
 }
 
 export default function Home() {
@@ -43,27 +41,6 @@ export default function Home() {
     setCurrentScreen(screen);
   };
   
-  // Handle resuming a course
-  const handleResumeCourse = (course: Course) => {
-    // Set the course state from the saved course
-    setSelectedCourse(course);
-    
-    // Update the course state
-    setState({
-      id: course.id,
-      topic: course.topic,
-      ageGroup: course.ageGroup as any, // Type cast as needed
-      courseLength: course.courseLength as any, // Type cast as needed
-      cards: Array.isArray(course.cards) ? course.cards : [],
-      currentCardIndex: course.currentCardIndex || 0,
-      isLoading: false,
-      totalCards: Array.isArray(course.cards) ? course.cards.length : 0
-    });
-    
-    // Use screen state navigation instead of direct URL
-    navigateToScreen(Screen.Cards);
-  };
-
   const handleParentCreateCourse = () => {
     generateCards();
     // Use screen state navigation instead of direct URL
@@ -77,7 +54,6 @@ export default function Home() {
           onStart={() => navigateToScreen(Screen.Topic)} 
           onParentMode={() => navigateToScreen(Screen.Parent)}
           onDailyCards={() => navigateToScreen(Screen.Daily)}
-          onResumeCourseSelection={() => navigateToScreen(Screen.Resumable)}
         />
       )}
       
@@ -115,10 +91,6 @@ export default function Home() {
 
       {currentScreen === Screen.Daily && (
         <DailyView onBackToHome={() => navigateToScreen(Screen.Welcome)} />
-      )}
-
-      {currentScreen === Screen.Resumable && (
-        <ResumableCourses onResumeCourse={handleResumeCourse} />
       )}
     </div>
   );

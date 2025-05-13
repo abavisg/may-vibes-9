@@ -8,10 +8,9 @@ interface WelcomeProps {
   onStart: () => void;
   onParentMode: () => void;
   onDailyCards?: () => void;
-  onResumeCourseSelection: () => void;
 }
 
-export const Welcome: FC<WelcomeProps> = ({ onStart, onParentMode, onDailyCards, onResumeCourseSelection }) => {
+export const Welcome: FC<WelcomeProps> = ({ onStart, onParentMode, onDailyCards }) => {
   const { resetState } = useCourseState();
   const [hasDailyCards, setHasDailyCards] = useState(false);
   
@@ -50,14 +49,6 @@ export const Welcome: FC<WelcomeProps> = ({ onStart, onParentMode, onDailyCards,
           onClick={onParentMode}
         >
           I'm a parent
-        </Button>
-        
-        <Button
-          variant="link"
-          className="text-primary hover:underline flex items-center"
-          onClick={onResumeCourseSelection}
-        >
-          <i className="ri-play-circle-line mr-1"></i> Resume Course
         </Button>
         
         <a href="/saved-courses">

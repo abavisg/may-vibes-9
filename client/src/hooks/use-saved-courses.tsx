@@ -39,26 +39,31 @@ export function useSavedCourses(): UseSavedCoursesReturn {
   const coursesQuery = useQuery({
     queryKey: ['/api/courses'],
     queryFn: async () => {
-      return apiRequest<Course[]>("GET", "/api/courses");
+      console.log('Fetching all courses - Query Function Executed');
+      const timestamp = new Date().getTime();
+      return apiRequest<Course[]>("GET", `/api/courses?_t=${timestamp}`);
     },
-    enabled: true, // Changed back to true to automatically fetch courses
+    enabled: !selectedCourseId, // Only fetch when no specific course is selected
+    staleTime: 5 * 60 * 1000, // Keep data fresh for 5 minutes
+    gcTime: 5 * 60 * 1000, // Cache for 5 minutes
+    refetchOnWindowFocus: false,
   });
-
-  // Fetch courses when the component mounts
-  useEffect(() => {
-    if (!coursesQuery.data && !coursesQuery.isLoading) {
-      coursesQuery.refetch();
-    }
-  }, []);
 
   // Query to fetch a specific course by ID
   const courseDetailQuery = useQuery({
     queryKey: ['/api/course', selectedCourseId],
     queryFn: async () => {
       if (!selectedCourseId) return null;
-      return apiRequest<Course>("GET", `/api/course/${selectedCourseId}`);
+      
+      console.log(`Fetching course details for ID: ${selectedCourseId}`);
+      // Add timestamp to avoid 304 Not Modified responses
+      const timestamp = new Date().getTime();
+      return apiRequest<Course>("GET", `/api/course/${selectedCourseId}?_t=${timestamp}`);
     },
     enabled: !!selectedCourseId, // Only run when a course ID is selected
+    staleTime: 0, // Always fetch fresh data
+    gcTime: 5 * 60 * 1000, // Cache for 5 minutes (renamed from cacheTime)
+    refetchOnWindowFocus: false,
   });
 
   // Mutation to save a course
@@ -149,8 +154,8 @@ export function useSavedCourses(): UseSavedCoursesReturn {
   return {
     courses: coursesQuery.data || [],
     selectedCourse: courseDetailQuery.data,
-    isLoading: coursesQuery.isLoading || saveMutation.isPending || updateCourseProgressMutation.isPending,
-    isError: (coursesQuery.isError || saveMutation.isError || updateCourseProgressMutation.isError) ?? false,
+    isLoading: coursesQuery.isLoading || courseDetailQuery.isLoading || saveMutation.isPending || updateCourseProgressMutation.isPending,
+    isError: (coursesQuery.isError || courseDetailQuery.isError || saveMutation.isError || updateCourseProgressMutation.isError) ?? false,
     saveCourse,
     selectCourse,
     updateCourseProgress,
