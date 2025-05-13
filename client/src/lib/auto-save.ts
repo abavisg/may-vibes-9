@@ -1,24 +1,24 @@
 /**
  * Utility for automatically saving course progress
  */
-import { apiRequest } from './queryClient';
 import type { Course } from '@/types';
 
 // Function to update course progress
 export async function updateCourseProgress(courseId: number, currentCardIndex: number): Promise<Course | null> {
   try {
-    const response = await apiRequest<Course>({
-      url: `/api/course/${courseId}/progress`,
-      options: {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ currentCardIndex }),
+    const response = await fetch(`/api/course/${courseId}/progress`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({ currentCardIndex }),
     });
     
-    return response;
+    if (!response.ok) {
+      throw new Error(`Failed to update progress: ${response.status}`);
+    }
+    
+    return await response.json();
   } catch (error) {
     console.error('Failed to update course progress:', error);
     return null;
@@ -60,16 +60,22 @@ export function autoSaveProgress(
 // Function to get all resumable courses
 export async function getResumableCourses(): Promise<Course[]> {
   try {
-    const courses = await apiRequest<Course[]>({
-      url: '/api/courses',
-      options: { method: 'GET' },
-    });
+    const response = await fetch('/api/courses');
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch courses: ${response.status}`);
+    }
+    
+    const courses: Course[] = await response.json();
     
     // Filter for courses with progress
-    return courses.filter(course => 
-      course.currentCardIndex > 0 && 
-      course.currentCardIndex < (Array.isArray(course.cards) ? course.cards.length - 1 : 0)
-    );
+    return courses.filter(course => {
+      const cardCount = Array.isArray(course.cards) ? course.cards.length : 0;
+      const hasProgress = typeof course.currentCardIndex === 'number' && course.currentCardIndex > 0;
+      const isIncomplete = typeof course.currentCardIndex === 'number' && course.currentCardIndex < cardCount - 1;
+      
+      return cardCount > 0 && hasProgress && isIncomplete;
+    });
   } catch (error) {
     console.error('Failed to fetch resumable courses:', error);
     return [];
