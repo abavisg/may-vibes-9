@@ -1,4 +1,4 @@
-import { FC } from "react";
+import { FC, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useCourseState } from "@/hooks/use-course-state";
 
@@ -10,8 +10,10 @@ interface WelcomeProps {
 export const Welcome: FC<WelcomeProps> = ({ onStart, onParentMode }) => {
   const { resetState } = useCourseState();
 
-  // Reset state when welcome screen is shown
-  resetState();
+  // Reset state when welcome screen is shown using useEffect to avoid React warning
+  useEffect(() => {
+    resetState();
+  }, [resetState]);
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
