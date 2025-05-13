@@ -1,7 +1,7 @@
 # may-vibes-9
 A project for AI-powered vibes.
 
-This project is a web application with a React frontend and an Express.js backend. It uses Drizzle ORM with a Neon database and integrates with OpenAI and Ollama for AI functionalities.
+This project is a web application with a React frontend and an Express.js backend. It uses Drizzle ORM with a local PostgreSQL database and integrates with OpenAI and Ollama for AI functionalities.
 
 ---
 
@@ -12,20 +12,20 @@ This project is a web application with a React frontend and an Express.js backen
 - **Retrieve Courses** – Fetch courses, potentially filtered by user ID.
 - **Retrieve Course by ID** – Fetch a specific course by its ID.
 - **User Authentication** - (Inferred from Passport dependency)
-- **Database Integration** - (Using Drizzle ORM with Neon)
+- **Database Integration** - (Using Drizzle ORM with local PostgreSQL)
 
 ---
 
 ## Tech stack
 
 - **Frontend:** React, Vite, Tailwind CSS, Radix UI, React Query, Wouter
-- **Backend:** Express.js, TypeScript, Drizzle ORM, Neon database, OpenAI, Ollama, Passport
+- **Backend:** Express.js, TypeScript, Drizzle ORM, **Local PostgreSQL database**, OpenAI, Ollama, Passport
 - **Other:** WebSockets (`ws`), Zod for validation
 
 ---
 
 ## Architecture
-The project follows a client-server architecture. The client is a React application that communicates with the Express.js backend. The backend handles API requests, interacts with the database (Neon via Drizzle ORM), and communicates with external AI services (OpenAI, Ollama).
+The project follows a client-server architecture. The client is a React application that communicates with the Express.js backend. The backend handles API requests, interacts with the database (local PostgreSQL via Drizzle ORM), and communicates with external AI services (OpenAI, Ollama).
 
 ---
 
@@ -69,10 +69,10 @@ The project follows a client-server architecture. The client is a React applicat
     ```bash
     npm install
     ```
-3.  **Set up environment variables:**
-    Create a `.env` file in the root directory and add necessary environment variables. Ensure you set the `DATABASE_URL` environment variable with the connection string for your Neon database.
-4.  **Provision the database:**
-    Before running migrations, ensure your database is provisioned (e.g., created in Neon).
+3.  **Set up a local PostgreSQL database:**
+    Install and start a local PostgreSQL server if you don't have one. Create a new database for the project.
+4.  **Set up environment variables:**
+    Create a `.env` file in the root directory and add necessary environment variables. Ensure you set the `DATABASE_URL` environment variable with the connection string for your local PostgreSQL database (e.g., `postgresql://[user]:[password]@localhost:5432/[database_name]`).
 5.  **Run database migrations:**
     ```bash
     npm run db:push
