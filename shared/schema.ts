@@ -17,7 +17,7 @@ export const learningCards = pgTable("learning_cards", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
   content: text("content").notNull(),
-  funFact: text("fun_fact").notNull(),
+  funFact: text("fun_fact"),
 });
 
 export const courses = pgTable("courses", {

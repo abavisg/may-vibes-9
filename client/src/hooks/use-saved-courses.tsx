@@ -41,7 +41,7 @@ export function useSavedCourses(): UseSavedCoursesReturn {
       const response = await apiRequest("GET", "/api/courses");
       return response.json() as Promise<Course[]>;
     },
-    enabled: true, // Auto-fetch courses when component mounts
+    enabled: false, // Changed from true to false
   });
 
   // Query to fetch a specific course by ID

@@ -140,17 +140,26 @@ export const CardScreen: FC<CardScreenProps> = ({ onBackToHome }) => {
               <i className="ri-calendar-line mr-1"></i> Daily Mode Activated
             </span>
           )}
+          {isLoading && (
+            <span className="text-sm text-primary animate-pulse">
+              <i className="ri-loader-4-line animate-spin mr-1"></i> Generating cards...
+            </span>
+          )}
         </div>
         <Progress value={progressPercentage} className="h-2" />
       </div>
 
       {/* Learning card */}
       {isLoading ? (
-        <div className="w-full max-w-3xl flex-1 flex items-center justify-center my-4">
+        <div className="w-full max-w-3xl flex-1 flex flex-col items-center justify-center my-4">
           <div className="w-full">
             <Skeleton className="h-20 w-full bg-primary/20 mb-4" />
             <Skeleton className="h-60 w-full bg-gray-100 mb-4" />
             <Skeleton className="h-20 w-full bg-amber-50" />
+          </div>
+          <div className="text-primary mt-6 animate-pulse text-center">
+            <p className="text-lg font-medium">Our AI is crafting learning cards for you</p>
+            <p className="text-sm text-muted-foreground">This might take a moment...</p>
           </div>
         </div>
       ) : cards.length > 0 && currentCardIndex < cards.length ? (

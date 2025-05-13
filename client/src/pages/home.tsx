@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Welcome } from "@/components/ui/welcome";
 import { TopicInput } from "@/components/ui/topic-input";
 import { AgeSelector } from "@/components/ui/age-selector";
-import { CourseLength } from "@/components/ui/course-length";
+import CourseLength from "@/components/ui/course-length";
 import { CardScreen } from "@/components/layout/card-screen";
 import { ParentMode } from "@/components/ui/parent-mode";
 import { DailyView } from "@/components/ui/daily-view";

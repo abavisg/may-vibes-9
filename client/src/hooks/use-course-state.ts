@@ -48,8 +48,7 @@ export function CourseProvider({ children }: { children: ReactNode }) {
 
   const generateCardsMutation = useMutation({
     mutationFn: async (data: GenerateCardsRequest) => {
-      const response = await apiRequest("POST", "/api/generate-cards", data);
-      return response.json() as Promise<GenerateCardsResponse>;
+      return apiRequest<GenerateCardsResponse>("POST", "/api/generate-cards", data);
     },
     onSuccess: (data) => {
       setState(prev => ({

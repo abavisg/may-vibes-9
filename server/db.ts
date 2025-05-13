@@ -1,5 +1,5 @@
 import { Pool } from 'pg';
-import { drizzle } from 'drizzle-orm/pg';
+import { drizzle } from 'drizzle-orm/node-postgres';
 import ws from "ws";
 import * as schema from "@shared/schema";
 

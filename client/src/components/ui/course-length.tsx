@@ -1,7 +1,8 @@
 import { FC } from "react";
 import { Button } from "@/components/ui/button";
 import { useCourseState } from "@/hooks/use-course-state";
-import type { CourseLength } from "@/types";
+import type { CourseLength as CourseLengthType } from "@/types";
+import { Loader2 } from "lucide-react";
 
 interface CourseLengthProps {
   onNext: () => void;
@@ -9,7 +10,7 @@ interface CourseLengthProps {
 }
 
 interface LengthOption {
-  value: CourseLength;
+  value: CourseLengthType;
   label: string;
   cards: string;
   description: string;
@@ -44,10 +45,10 @@ const LENGTH_OPTIONS: LengthOption[] = [
   }
 ];
 
-export const CourseLength: FC<CourseLengthProps> = ({ onNext, onBack }) => {
+const CourseLength: FC<CourseLengthProps> = ({ onNext, onBack }) => {
   const { state, setCourseLength, generateCards } = useCourseState();
 
-  const handleLengthSelection = (courseLength: CourseLength) => {
+  const handleLengthSelection = (courseLength: CourseLengthType) => {
     setCourseLength(courseLength);
   };
 
@@ -94,14 +95,24 @@ export const CourseLength: FC<CourseLengthProps> = ({ onNext, onBack }) => {
           variant="outline"
           className="bg-white text-primary border-2 border-primary text-lg font-bold py-2 px-6 rounded-full hover:bg-primary/5 transition"
           onClick={onBack}
+          disabled={state.isLoading}
         >
           <i className="ri-arrow-left-line align-middle mr-1"></i> Back
         </Button>
         <Button
           className="bg-primary text-white text-lg font-bold py-2 px-6 rounded-full shadow-lg hover:bg-primary/90 transition"
           onClick={handleStart}
+          disabled={state.isLoading}
         >
-          Start Learning <i className="ri-arrow-right-line align-middle ml-1"></i>
+          {state.isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...
+            </>
+          ) : (
+            <>
+              Start Learning <i className="ri-arrow-right-line align-middle ml-1"></i>
+            </>
+          )}
         </Button>
       </div>
     </div>

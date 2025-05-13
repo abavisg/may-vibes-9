@@ -1,7 +1,7 @@
 # may-vibes-9
 A project for AI-powered vibes.
 
-This project is a web application with a React frontend and an Express.js backend. It uses Drizzle ORM with a local PostgreSQL database and integrates with OpenAI and Ollama for AI functionalities.
+This project is a web application with a React frontend and an Express.js backend. It uses Drizzle ORM with a local PostgreSQL database and integrates with Ollama for AI functionalities.
 
 ---
 
@@ -19,7 +19,7 @@ This project is a web application with a React frontend and an Express.js backen
 ## Tech stack
 
 - **Frontend:** React, Vite, Tailwind CSS, Radix UI, React Query, Wouter
-- **Backend:** Express.js, TypeScript, Drizzle ORM, **Local PostgreSQL database**, OpenAI, Ollama, Passport
+- **Backend:** Express.js, TypeScript, Drizzle ORM, **Local PostgreSQL database**, Ollama, Passport
 - **Other:** WebSockets (`ws`), Zod for validation
 
 ---
@@ -49,7 +49,7 @@ The project follows a client-server architecture. The client is a React applicat
 **Remaining Work:**
 - **Complete Client-side User Interface:** Build out all necessary pages and components for a full user experience, including dedicated views for saved courses, a complete authentication flow (signup, login, logout), and any other planned features.
 - **User Authentication and Authorization:** Implement secure user authentication on the backend and integrate authentication status and token handling on the client-side to protect routes and data.
-- **Refinement of Backend Logic:** Review and enhance the details of database interactions (`server/storage.ts`) and AI integrations (`server/openai.ts`) for completeness, error handling, and robustness.
+- **Refinement of Backend Logic:** Review and enhance the details of database interactions (`server/storage.ts`) and AI integration (`server/ai.ts`) for completeness, error handling, and robustness. Ensure Ollama is configured correctly (e.g., via `OLLAMA_HOST` environment variable if not using default).
 - **Comprehensive Client-side State Management:** Improve state management for global application state, user authentication, and complex data flows.
 - **Enhanced Error Handling and User Feedback:** Implement more detailed and user-friendly error handling and notifications throughout the application.
 - **Real-time Features (if planned):** Implement WebSocket communication on both the server and client if real-time functionality is part of the project scope.

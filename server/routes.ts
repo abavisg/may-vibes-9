@@ -2,7 +2,7 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { generateCardsRequestSchema, insertCourseSchema } from "@shared/schema";
-import { generateLearningCards } from "./openai";
+import { generateLearningCards } from "./ollama";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 
