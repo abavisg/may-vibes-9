@@ -20,6 +20,13 @@ export const CardScreen: FC<CardScreenProps> = ({ onBackToHome }) => {
   const [courseSaved, setCourseSaved] = useState(false);
   const [dailyMode, setDailyMode] = useState(false);
 
+  // Check for empty state
+  useEffect(() => {
+    if (!isLoading && (!cards || cards.length === 0)) {
+      console.log("No cards available");
+    }
+  }, [cards, isLoading]);
+
   useEffect(() => {
     // Scroll to top when navigating between cards
     window.scrollTo(0, 0);
@@ -42,7 +49,7 @@ export const CardScreen: FC<CardScreenProps> = ({ onBackToHome }) => {
   
   // Function to handle text-to-speech
   const handleReadAloud = () => {
-    if (!cards[currentCardIndex]) return;
+    if (!cards || !cards[currentCardIndex]) return;
     
     if (isSpeakingNow) {
       stopSpeech();
@@ -99,15 +106,15 @@ export const CardScreen: FC<CardScreenProps> = ({ onBackToHome }) => {
             className="text-primary flex items-center font-semibold p-0"
             onClick={onBackToHome}
           >
-            <i className="ri-home-line mr-1"></i> Home
+            <i className="ri-arrow-left-line mr-1"></i> Back
           </Button>
           
-          <a href="/saved-courses">
+          <a href="/">
             <Button 
               variant="link"
               className="text-primary flex items-center font-semibold p-0"
             >
-              <i className="ri-bookmark-line mr-1"></i> Saved Courses
+              <i className="ri-home-line mr-1"></i> Home
             </Button>
           </a>
         </div>

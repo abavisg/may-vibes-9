@@ -60,12 +60,13 @@ export default function Home() {
       totalCards: Array.isArray(course.cards) ? course.cards.length : 0
     });
     
-    // Navigate to the cards screen
+    // Use screen state navigation instead of direct URL
     navigateToScreen(Screen.Cards);
   };
 
   const handleParentCreateCourse = () => {
     generateCards();
+    // Use screen state navigation instead of direct URL
     navigateToScreen(Screen.Cards);
   };
 
@@ -93,7 +94,10 @@ export default function Home() {
       
       {currentScreen === Screen.Length && (
         <CourseLength 
-          onNext={() => navigateToScreen(Screen.Cards)} 
+          onNext={() => {
+            generateCards();
+            navigateToScreen(Screen.Cards);
+          }} 
           onBack={() => navigateToScreen(Screen.Age)}
         />
       )}

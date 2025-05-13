@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, ReactNode } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { AgeGroup, CourseLength, CourseState, GenerateCardsRequest, LearningCard, GenerateCardsResponse } from "@/types";
+import type { AgeGroup, CourseLength, CourseState, GenerateCardsRequest, LearningCard, GenerateCardsResponse, Course } from "@/types";
 
 const DEFAULT_STATE: CourseState = {
   topic: "",
@@ -38,6 +38,7 @@ interface CourseContextType {
   resetState: () => void;
   generateCards: () => void;
   setState: (newState: Partial<CourseState>) => void;
+  loadCourse: (course: Course, startFromBeginning?: boolean) => void;
 }
 
 const CourseContext = createContext<CourseContextType | undefined>(undefined);
@@ -126,6 +127,37 @@ export function CourseProvider({ children }: { children: ReactNode }) {
     setState(prev => ({ ...prev, ...newState }));
   };
 
+  // New function to load an existing course
+  const loadCourse = (course: Course, startFromBeginning: boolean = false) => {
+    if (!course || !Array.isArray(course.cards) || course.cards.length === 0) {
+      toast({
+        title: "Invalid course",
+        description: "This course doesn't have any content",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const cardIndex = startFromBeginning ? 0 : (course.currentCardIndex || 0);
+    
+    setState({
+      id: course.id,
+      topic: course.topic,
+      ageGroup: course.ageGroup as AgeGroup,
+      courseLength: course.courseLength as CourseLength,
+      cards: course.cards,
+      currentCardIndex: cardIndex,
+      totalCards: course.cards.length,
+      isLoading: false
+    });
+    
+    // Show a success message
+    toast({
+      title: startFromBeginning ? "Starting from beginning" : "Resuming your progress",
+      description: `Loaded "${course.topic}" with ${course.cards.length} cards`,
+    });
+  };
+
   const value = {
     state,
     setTopic,
@@ -135,7 +167,8 @@ export function CourseProvider({ children }: { children: ReactNode }) {
     prevCard,
     resetState,
     generateCards,
-    setState: setStateDirectly
+    setState: setStateDirectly,
+    loadCourse
   };
 
   return React.createElement(CourseContext.Provider, 

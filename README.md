@@ -11,6 +11,11 @@ This project is a web application with a React frontend and an Express.js backen
 - **Save Courses** – Allows saving course information for later access.
 - **Retrieve Courses** – Fetch saved courses, potentially filtered by user ID.
 - **Course Progress Tracking** – Track and update the current position in a course.
+- **Resume Learning** – Option to resume from where you left off or start over.
+- **Daily Learning Mode** – Schedule cards for daily review.
+- **Age-Appropriate Content** – Customized learning material for different age groups.
+- **Text-to-Speech** – Read cards aloud for better accessibility.
+- **Export Options** – Download or print courses for offline use.
 - **User Authentication** - (Inferred from Passport dependency)
 - **Database Integration** - Using Drizzle ORM with local PostgreSQL
 
@@ -44,19 +49,26 @@ The project follows a client-server architecture. The client is a React applicat
 - Core backend API endpoints for card generation, saving courses, retrieving courses, and updating course progress.
 - Basic database connection configured for local PostgreSQL.
 - Client-side hooks and API calls for card generation, saving/fetching courses, and updating course progress.
-- Basic client-side screen management and components for displaying cards.
+- Card Screen UI with next/previous navigation, progress indicators, and save functionality.
 - Loading indicators during card generation for better user experience.
 - Robust JSON parsing for Ollama responses with fallback mechanisms.
 - Configurable Ollama integration with environment variables for host and model.
 - Request timeout handling and retry mechanism for Ollama calls.
+- Text-to-speech functionality for reading cards aloud.
+- Course saving and resuming functionality, including progress tracking.
+- Fixed navigation between card screens and parent views.
+- Age-appropriate content styling and customization.
+- Daily learning mode for scheduled card review.
+- Export functionality for downloading or printing courses.
 
 **Remaining Work:**
-- **Complete Client-side User Interface:** Build out all necessary pages and components for a full user experience, including dedicated views for saved courses, a complete authentication flow (signup, login, logout), and any other planned features.
 - **User Authentication and Authorization:** Implement secure user authentication on the backend and integrate authentication status and token handling on the client-side to protect routes and data.
 - **Refinement of Backend Logic:** Review and enhance the details of database interactions (`server/storage.ts`) for completeness, error handling, and robustness.
-- **Comprehensive Client-side State Management:** Improve state management for global application state, user authentication, and complex data flows.
 - **Enhanced Error Handling and User Feedback:** Implement more detailed and user-friendly error handling and notifications throughout the application.
 - **Real-time Features (if planned):** Implement WebSocket communication on both the server and client if real-time functionality is part of the project scope.
+- **Mobile Responsiveness:** Further optimize the UI for smaller screens and touch interactions.
+- **Offline Support:** Implement service workers for offline functionality.
+- **Analytics and Tracking:** Add usage analytics to understand user learning patterns.
 
 ---
 
@@ -82,6 +94,7 @@ The project follows a client-server architecture. The client is a React applicat
     # Ollama configuration
     OLLAMA_HOST=http://localhost:11434
     OLLAMA_MODEL=tinyllama
+    OLLAMA_TIMEOUT=30000
     ```
 5.  **Run database migrations:**
     ```bash

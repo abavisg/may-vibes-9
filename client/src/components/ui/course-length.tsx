@@ -56,7 +56,6 @@ const CourseLength: FC<CourseLengthProps> = ({ onNext, onBack }) => {
   const autoLabelMap = { quick: "Quick", standard: "Standard", deep: "Deep Dive" };
 
   const handleStart = () => {
-    generateCards();
     onNext();
   };
 

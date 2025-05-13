@@ -101,16 +101,24 @@ export function useSavedCourses(): UseSavedCoursesReturn {
     // Check if a course with the same topic already exists
     const existingCourse = coursesQuery.data?.find(course => course.topic === topic);
     
-    saveMutation.mutate({
+    // Prepare the request with the existing course ID if available
+    const request: SaveCourseRequest & { id?: number } = {
       topic,
       ageGroup,
       courseLength,
       cards,
       saved: true,
       createdAt: new Date().toISOString(),
-    },
+    };
+    
+    // If updating an existing course, include its ID
+    if (existingCourse?.id) {
+      request.id = existingCourse.id;
+    }
+    
+    saveMutation.mutate(request,
     {
-      onSuccess: () => {
+      onSuccess: (data) => {
         toast({
           title: existingCourse ? "Course updated successfully" : "Course saved successfully",
           description: existingCourse 
@@ -119,6 +127,11 @@ export function useSavedCourses(): UseSavedCoursesReturn {
         });
         // Invalidate the courses query to refresh the list
         queryClient.invalidateQueries({ queryKey: ['/api/courses'] });
+        
+        // If this was the selected course, update its details too
+        if (selectedCourseId && selectedCourseId === data.id) {
+          queryClient.invalidateQueries({ queryKey: ['/api/course', selectedCourseId] });
+        }
       }
     });
   };

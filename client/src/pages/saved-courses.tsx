@@ -1,14 +1,17 @@
 import { useState, useEffect } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useSavedCourses } from "@/hooks/use-saved-courses";
+import { useCourseState } from "@/hooks/use-course-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { downloadCourseAsPdf, printCourse } from "@/lib/pdf-export";
 
 export default function SavedCourses() {
   const { courses, selectedCourse, isLoading, selectCourse, fetchCourses } = useSavedCourses();
+  const { loadCourse } = useCourseState();
   const [viewMode, setViewMode] = useState<"list" | "detail">("list");
+  const [, navigate] = useLocation();
 
   // Reset view mode when navigating away and fetch courses when component mounts
   useEffect(() => {
@@ -38,6 +41,24 @@ export default function SavedCourses() {
   // Function to go back to list view
   const handleBackToList = () => {
     setViewMode("list");
+  };
+
+  // Function to start course from beginning
+  const handleStartFromBeginning = () => {
+    if (selectedCourse) {
+      loadCourse(selectedCourse, true);
+      // Use navigate instead of direct URL
+      navigate("/cards");
+    }
+  };
+
+  // Function to resume course from where left off
+  const handleResumeCourse = () => {
+    if (selectedCourse) {
+      loadCourse(selectedCourse, false);
+      // Use navigate instead of direct URL
+      navigate("/cards");
+    }
   };
 
   // Get age-appropriate styling
@@ -198,11 +219,28 @@ export default function SavedCourses() {
               
               <div className="p-6 bg-gray-50 border-t">
                 <div className="flex flex-wrap gap-4 justify-between items-center">
-                  <Link href="/">
-                    <Button className="md:w-auto">
-                      Create New Course
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      className="bg-primary text-white flex items-center gap-2"
+                      onClick={handleStartFromBeginning}
+                    >
+                      <i className="ri-play-circle-line"></i>
+                      Start from Beginning
                     </Button>
-                  </Link>
+
+                    <Button
+                      variant="secondary"
+                      className="flex items-center gap-2"
+                      onClick={handleResumeCourse}
+                      disabled={!selectedCourse?.currentCardIndex}
+                    >
+                      <i className="ri-history-line"></i>
+                      Resume
+                      {selectedCourse?.currentCardIndex ? 
+                        ` (Card ${selectedCourse.currentCardIndex + 1})` : 
+                        ""}
+                    </Button>
+                  </div>
                   
                   <div className="flex flex-wrap gap-2">
                     <Button 
@@ -223,6 +261,30 @@ export default function SavedCourses() {
                       Download
                     </Button>
                   </div>
+                </div>
+              </div>
+
+              {/* Added navigation buttons at the bottom */}
+              <div className="p-6 border-t bg-white">
+                <div className="flex justify-between">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleBackToList}
+                  >
+                    <i className="ri-arrow-left-line mr-2"></i>
+                    Back to courses
+                  </Button>
+                  
+                  <Link href="/">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                    >
+                      Create New Course
+                      <i className="ri-add-line ml-2"></i>
+                    </Button>
+                  </Link>
                 </div>
               </div>
             </>

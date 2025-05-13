@@ -41,8 +41,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get the course data from the request body
       const courseData = insertCourseSchema.parse(req.body);
       
-      // Save the course to the database
-      const savedCourse = await storage.saveCourse(courseData);
+      // Check if an ID was provided (for course update)
+      const courseId = req.body.id ? parseInt(req.body.id) : undefined;
+      
+      // Log the operation type for debugging
+      console.log(`${courseId ? 'Updating' : 'Creating'} course with topic "${courseData.topic}"`);
+      if (courseId) {
+        console.log(`Course ID for update: ${courseId}`);
+      }
+      
+      // Save or update the course in the database
+      const savedCourse = await storage.saveCourse({
+        ...courseData,
+        // Pass along the ID if it was provided
+        ...(courseId && { id: courseId })
+      });
       
       // Return the saved course
       return res.json(savedCourse);
