@@ -7,6 +7,7 @@ import { LearningCard } from "@/components/ui/learning-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Toaster } from "@/components/ui/toaster";
 import { speakCard, stopSpeech, isSpeaking } from "@/lib/text-to-speech";
+import { saveToDaily, getDailyCourses } from '@/lib/daily-cards';
 
 interface CardScreenProps {
   onBackToHome: () => void;
@@ -65,9 +66,22 @@ export const CardScreen: FC<CardScreenProps> = ({ onBackToHome }) => {
 
   // Function to handle daily cards option
   const handleDailyCards = () => {
+    if (!topic || !ageGroup || !courseLength || cards.length === 0) {
+      return;
+    }
+    
+    // Save the course to daily schedule
+    saveToDaily(
+      Date.now(), // Use timestamp as ID if we don't have a real course ID
+      topic,
+      ageGroup,
+      courseLength,
+      cards
+    );
+    
     setDailyMode(true);
-    // In a real implementation, this would set up a daily notification or schedule
-    alert("You'll receive one card per day! Come back tomorrow for more.");
+    // Show a confirmation message
+    alert("This course has been added to your daily learning schedule. You'll get one card per day. Come back tomorrow for the next card!");
   };
 
   // Calculate progress percentage
@@ -106,11 +120,12 @@ export const CardScreen: FC<CardScreenProps> = ({ onBackToHome }) => {
         </div>
         
         <Button
-          variant="link"
-          className="text-primary flex items-center font-semibold p-0"
+          variant={isSpeakingNow ? "secondary" : "link"}
+          className={`flex items-center font-semibold p-0 ${isSpeakingNow ? 'bg-primary/10 px-3 py-1 rounded' : 'text-primary'}`}
           onClick={handleReadAloud}
         >
-          <i className="ri-volume-up-line mr-1"></i> Read
+          <i className={`${isSpeakingNow ? 'ri-stop-circle-line' : 'ri-volume-up-line'} mr-1`}></i> 
+          {isSpeakingNow ? 'Stop' : 'Read'}
         </Button>
       </div>
 

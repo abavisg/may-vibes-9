@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Welcome from "@/components/ui/welcome";
 import TopicInput from "@/components/ui/topic-input";
 import AgeSelector from "@/components/ui/age-selector";
 import CourseLength from "@/components/ui/course-length";
 import CardScreen from "@/components/layout/card-screen";
 import ParentMode from "@/components/ui/parent-mode";
+import { DailyView } from "@/components/ui/daily-view";
 import { useCourseState } from "@/hooks/use-course-state";
+import { hasUnviewedCards } from "@/lib/daily-cards";
 
 // Define screens enum for easier navigation
 enum Screen {
@@ -14,7 +16,8 @@ enum Screen {
   Age = "age",
   Length = "length",
   Cards = "cards",
-  Parent = "parent"
+  Parent = "parent",
+  Daily = "daily"
 }
 
 export default function Home() {
