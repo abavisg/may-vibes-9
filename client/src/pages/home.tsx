@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import Welcome from "@/components/ui/welcome";
-import TopicInput from "@/components/ui/topic-input";
-import AgeSelector from "@/components/ui/age-selector";
-import CourseLength from "@/components/ui/course-length";
-import CardScreen from "@/components/layout/card-screen";
-import ParentMode from "@/components/ui/parent-mode";
+import { Welcome } from "@/components/ui/welcome";
+import { TopicInput } from "@/components/ui/topic-input";
+import { AgeSelector } from "@/components/ui/age-selector";
+import { CourseLength } from "@/components/ui/course-length";
+import { CardScreen } from "@/components/layout/card-screen";
+import { ParentMode } from "@/components/ui/parent-mode";
 import { DailyView } from "@/components/ui/daily-view";
 import { useCourseState } from "@/hooks/use-course-state";
 import { hasUnviewedCards } from "@/lib/daily-cards";
@@ -24,6 +24,17 @@ export default function Home() {
   const [currentScreen, setCurrentScreen] = useState<Screen>(Screen.Welcome);
   const { generateCards } = useCourseState();
 
+  // Check for unviewed daily cards on mount
+  useEffect(() => {
+    if (hasUnviewedCards()) {
+      // Show notification or automatically redirect
+      const shouldView = window.confirm("You have daily learning cards waiting for you! Would you like to view them now?");
+      if (shouldView) {
+        navigateToScreen(Screen.Daily);
+      }
+    }
+  }, []);
+
   const navigateToScreen = (screen: Screen) => {
     setCurrentScreen(screen);
   };
@@ -39,6 +50,7 @@ export default function Home() {
         <Welcome 
           onStart={() => navigateToScreen(Screen.Topic)} 
           onParentMode={() => navigateToScreen(Screen.Parent)}
+          onDailyCards={() => navigateToScreen(Screen.Daily)}
         />
       )}
       
@@ -69,6 +81,10 @@ export default function Home() {
           onBack={() => navigateToScreen(Screen.Welcome)}
           onCreateCourse={handleParentCreateCourse}
         />
+      )}
+
+      {currentScreen === Screen.Daily && (
+        <DailyView onBackToHome={() => navigateToScreen(Screen.Welcome)} />
       )}
     </div>
   );

@@ -1,14 +1,23 @@
-import { FC, useEffect } from "react";
+import { FC, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useCourseState } from "@/hooks/use-course-state";
+import { getDailyCourses } from "@/lib/daily-cards";
 
 interface WelcomeProps {
   onStart: () => void;
   onParentMode: () => void;
+  onDailyCards?: () => void;
 }
 
-export const Welcome: FC<WelcomeProps> = ({ onStart, onParentMode }) => {
+export const Welcome: FC<WelcomeProps> = ({ onStart, onParentMode, onDailyCards }) => {
   const { resetState } = useCourseState();
+  const [hasDailyCards, setHasDailyCards] = useState(false);
+  
+  // Check if we have any daily cards
+  useEffect(() => {
+    const courses = getDailyCourses();
+    setHasDailyCards(courses.length > 0);
+  }, []);
 
   // Reset state when welcome screen is shown using useEffect to avoid React warning
   useEffect(() => {
@@ -49,6 +58,16 @@ export const Welcome: FC<WelcomeProps> = ({ onStart, onParentMode }) => {
             <i className="ri-bookmark-line mr-1"></i> My Saved Courses
           </Button>
         </a>
+        
+        {hasDailyCards && onDailyCards && (
+          <Button
+            variant="link"
+            className="text-primary hover:underline flex items-center"
+            onClick={onDailyCards}
+          >
+            <i className="ri-calendar-line mr-1"></i> Daily Cards
+          </Button>
+        )}
       </div>
     </div>
   );
