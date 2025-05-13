@@ -72,7 +72,7 @@ export const getDailyCourses = (): DailyCourseInfo[] => {
 };
 
 // Function to get today's card for a specific course
-export const getTodayCard = (courseId: number): { 
+export const getTodayCard = (courseId: number, onProgressUpdate?: (courseId: number, currentCardIndex: number) => void): { 
   card: LearningCard | null, 
   currentIndex: number, 
   totalCards: number,
@@ -109,6 +109,11 @@ export const getTodayCard = (courseId: number): {
       
       // Save changes
       saveDailyCourse(courseInfo);
+      
+      // Call the progress update function if provided
+      if (onProgressUpdate) {
+        onProgressUpdate(courseId, courseInfo.currentCardIndex);
+      }
     }
     
     const isCompleted = courseInfo.currentCardIndex >= courseInfo.cards.length - 1;

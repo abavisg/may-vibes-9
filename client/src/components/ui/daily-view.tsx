@@ -6,6 +6,7 @@ import { LearningCard } from "@/components/ui/learning-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getDailyCourses, getTodayCard, removeFromDaily } from "@/lib/daily-cards";
 import type { LearningCard as LearningCardType } from "@/types";
+import { useSavedCourses } from "@/hooks/use-saved-courses";
 
 interface DailyViewProps {
   onBackToHome: () => void;
@@ -22,21 +23,10 @@ export const DailyView: FC<DailyViewProps> = ({ onBackToHome }) => {
     daysLeft: 0
   });
   
-  // Load daily courses on mount
-  useEffect(() => {
-    const courses = getDailyCourses();
-    setDailyCourses(courses);
-    
-    // If there's only one course, automatically select it
-    if (courses.length === 1) {
-      setSelectedCourse(courses[0].courseId);
-    }
-  }, []);
-  
   // Load today's card when a course is selected
   useEffect(() => {
     if (selectedCourse !== null) {
-      const { card, currentIndex, totalCards, isCompleted, daysLeft } = getTodayCard(selectedCourse);
+      const { card, currentIndex, totalCards, isCompleted, daysLeft } = getTodayCard(selectedCourse, updateCourseProgress);
       setTodayCard(card);
       setCardInfo({
         currentIndex,
@@ -70,6 +60,20 @@ export const DailyView: FC<DailyViewProps> = ({ onBackToHome }) => {
       }
     }
   };
+  
+  // Use the useSavedCourses hook to get the update function
+  const { updateCourseProgress } = useSavedCourses();
+  
+  // Load daily courses on mount
+  useEffect(() => {
+    const courses = getDailyCourses();
+    setDailyCourses(courses);
+    
+    // If there's only one course, automatically select it
+    if (courses.length === 1) {
+      setSelectedCourse(courses[0].courseId);
+    }
+  }, []);
   
   return (
     <div className="p-4 md:p-6 flex flex-col h-full">

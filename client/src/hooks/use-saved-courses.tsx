@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, UseMutationResult } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Course, LearningCard } from "@/types";
@@ -15,7 +15,22 @@ export interface SaveCourseRequest {
   createdAt: string;
 }
 
-export function useSavedCourses() {
+// Type for updating course progress
+interface UpdateCourseProgressRequest {
+  currentCardIndex: number;
+}
+
+interface UseSavedCoursesReturn {
+  courses: Course[];
+  selectedCourse: Course | undefined | null;
+  isLoading: boolean;
+  isError: boolean;
+  saveCourse: (topic: string, ageGroup: string, courseLength: string, cards: LearningCard[]) => void;
+  selectCourse: (courseId: number) => void;
+  updateCourseProgress: (courseId: number, currentCardIndex: number) => void;
+}
+
+export function useSavedCourses(): UseSavedCoursesReturn {
   const { toast } = useToast();
   const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null);
 
@@ -63,6 +78,23 @@ export function useSavedCourses() {
     },
   });
 
+  // Mutation to update course progress
+  const updateCourseProgressMutation = useMutation({
+    mutationFn: async ({ courseId, currentCardIndex }: { courseId: number; currentCardIndex: number }) => {
+      const response = await apiRequest("POST", `/api/course/${courseId}/progress`, { currentCardIndex });
+      return response.json() as Promise<Course>;
+    },
+    onSuccess: (data) => {
+      console.log("Course progress updated successfully:", data);
+      // Optionally invalidate relevant queries if needed, e.g., the specific course detail if it's being viewed
+      // queryClient.invalidateQueries({ queryKey: ['/api/course', data.id] });
+    },
+    onError: (error) => {
+      console.error("Error updating course progress:", error);
+      // Consider showing a less intrusive notification for progress updates
+    },
+  });
+
   // Function to save the current course
   const saveCourse = (
     topic: string,
@@ -85,12 +117,18 @@ export function useSavedCourses() {
     setSelectedCourseId(courseId);
   };
 
+  // Function to update course progress
+  const updateCourseProgress = (courseId: number, currentCardIndex: number) => {
+    updateCourseProgressMutation.mutate({ courseId, currentCardIndex });
+  };
+
   return {
     courses: coursesQuery.data || [],
     selectedCourse: courseDetailQuery.data,
-    isLoading: coursesQuery.isLoading || saveMutation.isPending,
-    isError: coursesQuery.isError || saveMutation.isError,
+    isLoading: coursesQuery.isLoading || saveMutation.isPending || updateCourseProgressMutation.isPending,
+    isError: (coursesQuery.isError || saveMutation.isError || updateCourseProgressMutation.isError) ?? false,
     saveCourse,
     selectCourse,
+    updateCourseProgress,
   };
 }
