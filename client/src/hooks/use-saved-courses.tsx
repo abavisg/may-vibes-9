@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQuery, UseMutationResult } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -28,6 +28,7 @@ interface UseSavedCoursesReturn {
   saveCourse: (topic: string, ageGroup: string, courseLength: string, cards: LearningCard[]) => void;
   selectCourse: (courseId: number) => void;
   updateCourseProgress: (courseId: number, currentCardIndex: number) => void;
+  fetchCourses: () => void;
 }
 
 export function useSavedCourses(): UseSavedCoursesReturn {
@@ -40,8 +41,15 @@ export function useSavedCourses(): UseSavedCoursesReturn {
     queryFn: async () => {
       return apiRequest<Course[]>("GET", "/api/courses");
     },
-    enabled: false, // Changed from true to false
+    enabled: true, // Changed back to true to automatically fetch courses
   });
+
+  // Fetch courses when the component mounts
+  useEffect(() => {
+    if (!coursesQuery.data && !coursesQuery.isLoading) {
+      coursesQuery.refetch();
+    }
+  }, []);
 
   // Query to fetch a specific course by ID
   const courseDetailQuery = useQuery({
@@ -57,14 +65,6 @@ export function useSavedCourses(): UseSavedCoursesReturn {
   const saveMutation = useMutation({
     mutationFn: async (courseData: SaveCourseRequest) => {
       return apiRequest<Course>("POST", "/api/save-course", courseData);
-    },
-    onSuccess: () => {
-      toast({
-        title: "Course saved successfully",
-        description: "You can access it anytime in your saved courses.",
-      });
-      // Invalidate the courses query to refresh the list
-      queryClient.invalidateQueries({ queryKey: ['/api/courses'] });
     },
     onError: (error) => {
       toast({
@@ -98,6 +98,9 @@ export function useSavedCourses(): UseSavedCoursesReturn {
     courseLength: string,
     cards: LearningCard[]
   ) => {
+    // Check if a course with the same topic already exists
+    const existingCourse = coursesQuery.data?.find(course => course.topic === topic);
+    
     saveMutation.mutate({
       topic,
       ageGroup,
@@ -105,6 +108,18 @@ export function useSavedCourses(): UseSavedCoursesReturn {
       cards,
       saved: true,
       createdAt: new Date().toISOString(),
+    },
+    {
+      onSuccess: () => {
+        toast({
+          title: existingCourse ? "Course updated successfully" : "Course saved successfully",
+          description: existingCourse 
+            ? "Your existing course has been updated with the latest content." 
+            : "You can access it anytime in your saved courses.",
+        });
+        // Invalidate the courses query to refresh the list
+        queryClient.invalidateQueries({ queryKey: ['/api/courses'] });
+      }
     });
   };
 
@@ -126,5 +141,6 @@ export function useSavedCourses(): UseSavedCoursesReturn {
     saveCourse,
     selectCourse,
     updateCourseProgress,
+    fetchCourses: () => coursesQuery.refetch(), // Add function to manually refetch courses
   };
 }

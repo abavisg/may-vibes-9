@@ -54,18 +54,43 @@ export class MemStorage implements IStorage {
   }
 
   async saveCourse(course: InsertCourse): Promise<Course> {
-    const id = this.courseId++;
-    // Ensure all required properties are set with proper types
-    const newCourse: Course = { 
-      ...course, 
-      id,
-      userId: course.userId ?? null,
-      saved: course.saved ?? null,
-      lastViewedAt: course.lastViewedAt ?? new Date().toISOString(),
-      currentCardIndex: course.currentCardIndex ?? 0
-    };
-    this.courses.set(id, newCourse);
-    return newCourse;
+    // Check if a course with the same topic already exists
+    let existingCourse: Course | undefined;
+    
+    Array.from(this.courses.values()).forEach(c => {
+      if (c.topic === course.topic) {
+        existingCourse = c;
+      }
+    });
+    
+    if (existingCourse) {
+      // Update existing course
+      const updatedCourse: Course = { 
+        ...existingCourse,
+        ageGroup: course.ageGroup,
+        courseLength: course.courseLength, 
+        cards: course.cards,
+        saved: course.saved ?? null,
+        lastViewedAt: new Date().toISOString()
+      };
+      
+      this.courses.set(existingCourse.id, updatedCourse);
+      return updatedCourse;
+    } else {
+      // Create new course
+      const id = this.courseId++;
+      // Ensure all required properties are set with proper types
+      const newCourse: Course = { 
+        ...course, 
+        id,
+        userId: course.userId ?? null,
+        saved: course.saved ?? null,
+        lastViewedAt: course.lastViewedAt ?? new Date().toISOString(),
+        currentCardIndex: course.currentCardIndex ?? 0
+      };
+      this.courses.set(id, newCourse);
+      return newCourse;
+    }
   }
 
   async getUserCourses(userId: number | null): Promise<Course[]> {
@@ -152,20 +177,67 @@ export class DatabaseStorage implements IStorage {
       throw new Error("Database not available");
     }
     
-    const [newCourse] = await db
-      .insert(courses)
-      .values(course)
-      .returning();
-    return newCourse;
+    try {
+      // Check if a course with the same topic already exists
+      console.log(`Checking if course with topic "${course.topic}" already exists`);
+      const existingCourses = await db
+        .select()
+        .from(courses)
+        .where(eq(courses.topic, course.topic));
+      
+      if (existingCourses.length > 0) {
+        // Course exists, update it
+        const existingCourse = existingCourses[0];
+        console.log(`Found existing course with ID ${existingCourse.id}, updating it`);
+        
+        const [updatedCourse] = await db
+          .update(courses)
+          .set({
+            ageGroup: course.ageGroup,
+            courseLength: course.courseLength,
+            cards: course.cards,
+            saved: course.saved,
+            lastViewedAt: new Date().toISOString()
+          })
+          .where(eq(courses.id, existingCourse.id))
+          .returning();
+          
+        return updatedCourse;
+      } else {
+        // No existing course found, create a new one
+        console.log(`No existing course found, creating new course with topic "${course.topic}"`);
+        const [newCourse] = await db
+          .insert(courses)
+          .values(course)
+          .returning();
+        return newCourse;
+      }
+    } catch (error) {
+      console.error("Error saving course:", error);
+      throw error;
+    }
   }
 
   async getUserCourses(userId: number | null): Promise<Course[]> {
-    if (!db) return [];
+    if (!db) {
+      console.log("Database not available, using in-memory storage");
+      return [];
+    }
     
-    if (userId) {
-      return await db.select().from(courses).where(eq(courses.userId, userId));
-    } else {
-      return await db.select().from(courses);
+    try {
+      let result;
+      if (userId) {
+        console.log(`Fetching courses for user ID: ${userId}`);
+        result = await db.select().from(courses).where(eq(courses.userId, userId));
+      } else {
+        console.log("Fetching all courses");
+        result = await db.select().from(courses);
+      }
+      console.log(`Found ${result.length} courses in database`);
+      return result;
+    } catch (error) {
+      console.error("Error fetching courses from database:", error);
+      return [];
     }
   }
 

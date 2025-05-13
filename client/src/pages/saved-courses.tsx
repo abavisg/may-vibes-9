@@ -7,15 +7,17 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { downloadCourseAsPdf, printCourse } from "@/lib/pdf-export";
 
 export default function SavedCourses() {
-  const { courses, selectedCourse, isLoading, selectCourse } = useSavedCourses();
+  const { courses, selectedCourse, isLoading, selectCourse, fetchCourses } = useSavedCourses();
   const [viewMode, setViewMode] = useState<"list" | "detail">("list");
 
-  // Reset view mode when navigating away
+  // Reset view mode when navigating away and fetch courses when component mounts
   useEffect(() => {
+    fetchCourses(); // Explicitly fetch courses when component mounts
+    
     return () => {
       setViewMode("list");
     };
-  }, []);
+  }, [fetchCourses]);
 
   // Function to format date string
   const formatDate = (dateString: string) => {
