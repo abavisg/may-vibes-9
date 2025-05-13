@@ -6,7 +6,7 @@ import { LearningCard } from "@/components/ui/learning-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getDailyCourses, getTodayCard, removeFromDaily } from "@/lib/daily-cards";
 import type { LearningCard as LearningCardType } from "@/types";
-import { useSavedCourses } from "@/hooks/use-saved-courses";
+import { useMyCourses } from "@/hooks/use-my-courses";
 
 interface DailyViewProps {
   onBackToHome: () => void;
@@ -61,8 +61,8 @@ export const DailyView: FC<DailyViewProps> = ({ onBackToHome }) => {
     }
   };
   
-  // Use the useSavedCourses hook to get the update function
-  const { updateCourseProgress } = useSavedCourses();
+  // Use the useMyCourses hook to get the update function
+  const { updateCourseProgress } = useMyCourses();
   
   // Load daily courses on mount
   useEffect(() => {
@@ -186,9 +186,9 @@ export const DailyView: FC<DailyViewProps> = ({ onBackToHome }) => {
                     <Button variant="outline" onClick={onBackToHome}>
                       Back to Home
                     </Button>
-                    <Link href="/saved-courses">
+                    <Link href="/my-courses">
                       <Button variant="outline">
-                        <i className="ri-bookmark-line mr-1"></i> Saved Courses
+                        <i className="ri-bookmark-line mr-1"></i> My Courses
                       </Button>
                     </Link>
                   </div>

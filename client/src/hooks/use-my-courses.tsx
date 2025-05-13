@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useMutation, useQuery, UseMutationResult } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -20,30 +20,29 @@ interface UpdateCourseProgressRequest {
   currentCardIndex: number;
 }
 
-interface UseSavedCoursesReturn {
+interface UseMyCoursesReturn {
   courses: Course[];
   selectedCourse: Course | undefined | null;
   isLoading: boolean;
   isError: boolean;
-  saveCourse: (topic: string, ageGroup: string, courseLength: string, cards: LearningCard[]) => void;
   selectCourse: (courseId: number) => void;
   updateCourseProgress: (courseId: number, currentCardIndex: number) => void;
   fetchCourses: () => void;
+  saveCourseMutation: UseMutationResult<Course, Error, SaveCourseRequest>; // Expose the mutation result
 }
 
-export function useSavedCourses(): UseSavedCoursesReturn {
+export function useMyCourses(): UseMyCoursesReturn {
   const { toast } = useToast();
   const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null);
 
-  // Query to fetch all saved courses
+  // Query to fetch all courses
   const coursesQuery = useQuery({
     queryKey: ['/api/courses'],
     queryFn: async () => {
-      console.log('Fetching all courses - Query Function Executed');
+      console.log('Fetching all courses');
       const timestamp = new Date().getTime();
       return apiRequest<Course[]>("GET", `/api/courses?_t=${timestamp}`);
     },
-    enabled: !selectedCourseId, // Only fetch when no specific course is selected
     staleTime: 5 * 60 * 1000, // Keep data fresh for 5 minutes
     gcTime: 5 * 60 * 1000, // Cache for 5 minutes
     refetchOnWindowFocus: false,
@@ -54,22 +53,50 @@ export function useSavedCourses(): UseSavedCoursesReturn {
     queryKey: ['/api/course', selectedCourseId],
     queryFn: async () => {
       if (!selectedCourseId) return null;
-      
       console.log(`Fetching course details for ID: ${selectedCourseId}`);
-      // Add timestamp to avoid 304 Not Modified responses
-      const timestamp = new Date().getTime();
-      return apiRequest<Course>("GET", `/api/course/${selectedCourseId}?_t=${timestamp}`);
+      try {
+        const timestamp = new Date().getTime();
+        // Check if already in courses cache before fetching
+        const courses = queryClient.getQueryData<Course[]>(['/api/courses']);
+        const cachedCourse = courses?.find(course => course.id === selectedCourseId);
+        if (cachedCourse) {
+          console.log(`Using cached course data for ID ${selectedCourseId}`);
+          return cachedCourse;
+        }
+        
+        // Not in cache, fetch from API
+        const result = await apiRequest<Course>("GET", `/api/course/${selectedCourseId}?_t=${timestamp}`);
+        if (!result) {
+          console.error(`API returned empty result for course ID ${selectedCourseId}`);
+          throw new Error(`Course with ID ${selectedCourseId} not found`);
+        }
+        return result;
+      } catch (error: any) {
+        console.error(`Error fetching course ${selectedCourseId}:`, error);
+        toast({
+          title: "Error loading course",
+          description: `Could not load course details: ${error.message}`,
+          variant: "destructive"
+        });
+        // Re-throw to let React Query handle it
+        throw error;
+      }
     },
     enabled: !!selectedCourseId, // Only run when a course ID is selected
-    staleTime: 0, // Always fetch fresh data
-    gcTime: 5 * 60 * 1000, // Cache for 5 minutes (renamed from cacheTime)
+    staleTime: 5 * 60 * 1000, // Keep data fresh for 5 minutes
+    gcTime: 5 * 60 * 1000, // Cache for 5 minutes
     refetchOnWindowFocus: false,
+    retry: 1, // Only retry once on failure
   });
 
   // Mutation to save a course
   const saveMutation = useMutation({
     mutationFn: async (courseData: SaveCourseRequest) => {
       return apiRequest<Course>("POST", "/api/save-course", courseData);
+    },
+    onSuccess: () => {
+      // Invalidate the courses query to show the new course in the list
+      queryClient.invalidateQueries({ queryKey: ['/api/courses'] });
     },
     onError: (error) => {
       toast({
@@ -87,63 +114,25 @@ export function useSavedCourses(): UseSavedCoursesReturn {
     },
     onSuccess: (data) => {
       console.log("Course progress updated successfully:", data);
-      // Optionally invalidate relevant queries if needed, e.g., the specific course detail if it's being viewed
-      // queryClient.invalidateQueries({ queryKey: ['/api/course', data.id] });
+      queryClient.invalidateQueries({ queryKey: ['/api/course', data.id] });
     },
     onError: (error) => {
       console.error("Error updating course progress:", error);
-      // Consider showing a less intrusive notification for progress updates
     },
   });
 
-  // Function to save the current course
-  const saveCourse = (
-    topic: string,
-    ageGroup: string,
-    courseLength: string,
-    cards: LearningCard[]
-  ) => {
-    // Check if a course with the same topic already exists
-    const existingCourse = coursesQuery.data?.find(course => course.topic === topic);
-    
-    // Prepare the request with the existing course ID if available
-    const request: SaveCourseRequest & { id?: number } = {
-      topic,
-      ageGroup,
-      courseLength,
-      cards,
-      saved: true,
-      createdAt: new Date().toISOString(),
-    };
-    
-    // If updating an existing course, include its ID
-    if (existingCourse?.id) {
-      request.id = existingCourse.id;
-    }
-    
-    saveMutation.mutate(request,
-    {
-      onSuccess: (data) => {
-        toast({
-          title: existingCourse ? "Course updated successfully" : "Course saved successfully",
-          description: existingCourse 
-            ? "Your existing course has been updated with the latest content." 
-            : "You can access it anytime in your saved courses.",
-        });
-        // Invalidate the courses query to refresh the list
-        queryClient.invalidateQueries({ queryKey: ['/api/courses'] });
-        
-        // If this was the selected course, update its details too
-        if (selectedCourseId && selectedCourseId === data.id) {
-          queryClient.invalidateQueries({ queryKey: ['/api/course', selectedCourseId] });
-        }
-      }
-    });
-  };
-
   // Function to select a course for viewing
   const selectCourse = (courseId: number) => {
-    setSelectedCourseId(courseId);
+    console.log(`selectCourse called with ID: ${courseId}`);
+    // Reset current selectedCourse data when selecting a new course
+    // This prevents showing stale data while loading
+    if (selectedCourseId !== courseId) {
+      // Only update if it's a different course to avoid loops
+      setSelectedCourseId(null); // Clear first to ensure a clean state
+      setTimeout(() => setSelectedCourseId(courseId), 0); // Set in next tick to force a clean re-fetch
+    } else {
+      setSelectedCourseId(courseId); // Same course, just refresh
+    }
   };
 
   // Function to update course progress
@@ -154,11 +143,11 @@ export function useSavedCourses(): UseSavedCoursesReturn {
   return {
     courses: coursesQuery.data || [],
     selectedCourse: courseDetailQuery.data,
-    isLoading: coursesQuery.isLoading || courseDetailQuery.isLoading || saveMutation.isPending || updateCourseProgressMutation.isPending,
-    isError: (coursesQuery.isError || courseDetailQuery.isError || saveMutation.isError || updateCourseProgressMutation.isError) ?? false,
-    saveCourse,
+    isLoading: coursesQuery.isLoading || courseDetailQuery.isLoading,
+    isError: coursesQuery.isError || courseDetailQuery.isError,
     selectCourse,
     updateCourseProgress,
-    fetchCourses: () => coursesQuery.refetch(), // Add function to manually refetch courses
+    fetchCourses: () => coursesQuery.refetch(),
+    saveCourseMutation: saveMutation, // Expose the mutation
   };
-}
+} 

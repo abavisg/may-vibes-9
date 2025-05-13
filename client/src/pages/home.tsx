@@ -1,97 +1,34 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { Welcome } from "@/components/ui/welcome";
-import { TopicInput } from "@/components/ui/topic-input";
-import { AgeSelector } from "@/components/ui/age-selector";
-import CourseLength from "@/components/ui/course-length";
-import { CardScreen } from "@/components/layout/card-screen";
-import { ParentMode } from "@/components/ui/parent-mode";
-import { DailyView } from "@/components/ui/daily-view";
 import { useCourseState } from "@/hooks/use-course-state";
 import { hasUnviewedCards } from "@/lib/daily-cards";
 import type { Course } from "@/types";
 
-// Define screens enum for easier navigation
-enum Screen {
-  Welcome = "welcome",
-  Topic = "topic",
-  Age = "age",
-  Length = "length",
-  Cards = "cards",
-  Parent = "parent",
-  Daily = "daily",
-}
-
 export default function Home() {
-  const [currentScreen, setCurrentScreen] = useState<Screen>(Screen.Welcome);
-  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
-  const { generateCards, setTopic, setAgeGroup, setCourseLength, setState } = useCourseState();
+  const { generateCards, setTopic, setAgeGroup, setCourseLength } = useCourseState();
+  const [, navigate] = useLocation();
 
-  // Check for unviewed daily cards on mount
   useEffect(() => {
     if (hasUnviewedCards()) {
-      // Show notification or automatically redirect
       const shouldView = window.confirm("You have daily learning cards waiting for you! Would you like to view them now?");
       if (shouldView) {
-        navigateToScreen(Screen.Daily);
+        console.log("Navigate to Daily Cards");
       }
     }
   }, []);
 
-  const navigateToScreen = (screen: Screen) => {
-    setCurrentScreen(screen);
-  };
-  
-  const handleParentCreateCourse = () => {
-    generateCards();
-    // Use screen state navigation instead of direct URL
-    navigateToScreen(Screen.Cards);
-  };
+  const handleStartLearning = () => navigate("/topic");
+  const handleParentMode = () => navigate("/parent");
+  const handleMyCourses = () => navigate("/my-courses");
 
   return (
     <div className="min-h-screen flex flex-col font-sans">
-      {currentScreen === Screen.Welcome && (
-        <Welcome 
-          onStart={() => navigateToScreen(Screen.Topic)} 
-          onParentMode={() => navigateToScreen(Screen.Parent)}
-          onDailyCards={() => navigateToScreen(Screen.Daily)}
-        />
-      )}
-      
-      {currentScreen === Screen.Topic && (
-        <TopicInput onNext={() => navigateToScreen(Screen.Age)} />
-      )}
-      
-      {currentScreen === Screen.Age && (
-        <AgeSelector 
-          onNext={() => navigateToScreen(Screen.Length)} 
-          onBack={() => navigateToScreen(Screen.Topic)}
-        />
-      )}
-      
-      {currentScreen === Screen.Length && (
-        <CourseLength 
-          onNext={() => {
-            generateCards();
-            navigateToScreen(Screen.Cards);
-          }} 
-          onBack={() => navigateToScreen(Screen.Age)}
-        />
-      )}
-      
-      {currentScreen === Screen.Cards && (
-        <CardScreen onBackToHome={() => navigateToScreen(Screen.Welcome)} />
-      )}
-      
-      {currentScreen === Screen.Parent && (
-        <ParentMode 
-          onBack={() => navigateToScreen(Screen.Welcome)}
-          onCreateCourse={handleParentCreateCourse}
-        />
-      )}
-
-      {currentScreen === Screen.Daily && (
-        <DailyView onBackToHome={() => navigateToScreen(Screen.Welcome)} />
-      )}
+      <Welcome 
+        onStart={() => navigate('/create/topic')}
+        onParentMode={handleParentMode}
+        onDailyCards={() => { console.log("Daily Cards Clicked"); }}
+      />
     </div>
   );
 }

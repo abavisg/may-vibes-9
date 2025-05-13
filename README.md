@@ -8,10 +8,10 @@ This project is a web application with a React frontend and an Express.js backen
 ## Features
 
 - **Generate Learning Cards** – AI-powered generation of educational cards using Ollama.
-- **Save Courses** – Allows saving course information for later access.
-- **Retrieve Courses** – Fetch saved courses, potentially filtered by user ID.
+- **My Courses** – Allows saving course information and tracking progress for later access.
+- **Retrieved Courses** – Fetch saved courses, potentially filtered by user ID.
 - **Course Progress Tracking** – Track and update the current position in a course.
-- **Integrated Resume & Start Functionality** – Resume from where you left off or start from the beginning, all from the Saved Courses screen.
+- **Integrated Resume & Start Functionality** – Resume from where you left off or start from the beginning, all from the My Courses screen.
 - **Daily Learning Mode** – Schedule cards for daily review.
 - **Age-Appropriate Content** – Customized learning material for different age groups.
 - **Text-to-Speech** – Read cards aloud for better accessibility.
@@ -48,7 +48,7 @@ The project follows a client-server architecture. The client is a React applicat
 **Implemented:**
 - Core backend API endpoints for card generation, saving courses, retrieving courses, and updating course progress.
 - Basic database connection configured for local PostgreSQL.
-- Client-side hooks and API calls for card generation, saving/fetching courses, and updating course progress.
+- Client-side hooks and API calls for card generation, fetching courses, and updating course progress.
 - Card Screen UI with next/previous navigation, progress indicators, and save functionality.
 - Loading indicators during card generation for better user experience.
 - Robust JSON parsing for Ollama responses with fallback mechanisms.
@@ -61,6 +61,7 @@ The project follows a client-server architecture. The client is a React applicat
 - Daily learning mode for scheduled card review.
 - Export functionality for downloading or printing courses.
 - Self-contained card viewer with local state management for improved navigation experience.
+- Modular codebase with clear separation of concerns and routing.
 
 **Remaining Work:**
 - **User Authentication and Authorization:** Implement secure user authentication on the backend and integrate authentication status and token handling on the client-side to protect routes and data.

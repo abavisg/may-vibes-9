@@ -57,8 +57,8 @@ export function autoSaveProgress(
   }, DEBOUNCE_TIME);
 }
 
-// Function to get all resumable courses
-export async function getResumableCourses(): Promise<Course[]> {
+// Function to get all courses with progress
+export async function getCoursesWithProgress(): Promise<Course[]> {
   try {
     const response = await fetch('/api/courses');
     
@@ -77,7 +77,7 @@ export async function getResumableCourses(): Promise<Course[]> {
       return cardCount > 0 && hasProgress && isIncomplete;
     });
   } catch (error) {
-    console.error('Failed to fetch resumable courses:', error);
+    console.error('Failed to fetch courses with progress:', error);
     return [];
   }
 }
@@ -85,7 +85,7 @@ export async function getResumableCourses(): Promise<Course[]> {
 // Function to get the most recently viewed course
 export async function getMostRecentCourse(): Promise<Course | null> {
   try {
-    const courses = await getResumableCourses();
+    const courses = await getCoursesWithProgress();
     
     if (courses.length === 0) return null;
     

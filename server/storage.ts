@@ -130,7 +130,11 @@ export class MemStorage implements IStorage {
     const result: LearningCard[] = [];
     for (const card of cards) {
       const id = this.cardId++;
-      const newCard: LearningCard = { ...card, id };
+      const newCard: LearningCard = { 
+        ...card, 
+        id,
+        funFact: card.funFact ?? null 
+      };
       this.learningCards.set(id, newCard);
       result.push(newCard);
     }

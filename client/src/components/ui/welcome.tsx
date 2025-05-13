@@ -51,12 +51,12 @@ export const Welcome: FC<WelcomeProps> = ({ onStart, onParentMode, onDailyCards 
           I'm a parent
         </Button>
         
-        <a href="/saved-courses">
+        <a href="/my-courses">
           <Button
             variant="link"
             className="text-primary hover:underline flex items-center"
           >
-            <i className="ri-bookmark-line mr-1"></i> My Saved Courses
+            <i className="ri-bookmark-line mr-1"></i> My Courses
           </Button>
         </a>
         

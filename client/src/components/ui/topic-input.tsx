@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useCourseState } from "@/hooks/use-course-state";
 
 interface TopicInputProps {
-  onNext: () => void;
+  onTopicSubmit: (topic: string) => void;
 }
 
 const SUGGESTED_TOPICS = [
@@ -16,7 +16,7 @@ const SUGGESTED_TOPICS = [
   "History"
 ];
 
-export const TopicInput: FC<TopicInputProps> = ({ onNext }) => {
+export const TopicInput: FC<TopicInputProps> = ({ onTopicSubmit }) => {
   const { state, setTopic } = useCourseState();
 
   const handleTopicChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -24,15 +24,13 @@ export const TopicInput: FC<TopicInputProps> = ({ onNext }) => {
   };
 
   const handleNextClick = () => {
-    if (!state.topic) {
-      // Default to Dinosaurs if no topic is entered
-      setTopic("Dinosaurs");
-    }
-    onNext();
+    const topicToSubmit = state.topic || "Dinosaurs";
+    onTopicSubmit(topicToSubmit);
   };
 
   const handleTopicSelection = (topic: string) => {
     setTopic(topic);
+    onTopicSubmit(topic);
   };
 
   return (

@@ -4,7 +4,7 @@ import { useCourseState } from "@/hooks/use-course-state";
 import type { AgeGroup } from "@/types";
 
 interface AgeSelectorProps {
-  onNext: () => void;
+  onNext: (ageGroup: AgeGroup) => void;
   onBack: () => void;
 }
 
@@ -41,14 +41,7 @@ export const AgeSelector: FC<AgeSelectorProps> = ({ onNext, onBack }) => {
 
   const handleAgeSelection = (ageGroup: AgeGroup) => {
     setAgeGroup(ageGroup);
-  };
-
-  const handleNextClick = () => {
-    if (!state.ageGroup) {
-      // Default to 8-10 if no age group is selected
-      setAgeGroup("8-10");
-    }
-    onNext();
+    onNext(ageGroup);
   };
 
   return (
@@ -87,12 +80,6 @@ export const AgeSelector: FC<AgeSelectorProps> = ({ onNext, onBack }) => {
           onClick={onBack}
         >
           <i className="ri-arrow-left-line align-middle mr-1"></i> Back
-        </Button>
-        <Button
-          className="bg-primary text-white text-lg font-bold py-2 px-6 rounded-full shadow-lg hover:bg-primary/90 transition"
-          onClick={handleNextClick}
-        >
-          Next <i className="ri-arrow-right-line align-middle ml-1"></i>
         </Button>
       </div>
     </div>

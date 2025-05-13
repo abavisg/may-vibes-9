@@ -5,7 +5,7 @@ import type { CourseLength as CourseLengthType } from "@/types";
 import { Loader2 } from "lucide-react";
 
 interface CourseLengthProps {
-  onNext: () => void;
+  onNext: (courseLength: CourseLengthType) => Promise<void>;
   onBack: () => void;
 }
 
@@ -45,7 +45,7 @@ const LENGTH_OPTIONS: LengthOption[] = [
   }
 ];
 
-const CourseLength: FC<CourseLengthProps> = ({ onNext, onBack }) => {
+export const CourseLength: FC<CourseLengthProps> = ({ onNext, onBack }) => {
   const { state, setCourseLength, generateCards } = useCourseState();
 
   const handleLengthSelection = (courseLength: CourseLengthType) => {
@@ -55,8 +55,12 @@ const CourseLength: FC<CourseLengthProps> = ({ onNext, onBack }) => {
   const autoLength = state.courseLength || "standard";
   const autoLabelMap = { quick: "Quick", standard: "Standard", deep: "Deep Dive" };
 
-  const handleStart = () => {
-    onNext();
+  const handleStart = async () => {
+    if (state.courseLength) {
+      await onNext(state.courseLength as CourseLengthType);
+    } else {
+      await onNext("standard" as CourseLengthType);
+    }
   };
 
   return (

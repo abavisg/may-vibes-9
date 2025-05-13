@@ -2,14 +2,14 @@ import { FC, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getResumableCourses } from "@/lib/auto-save";
+import { getCoursesWithProgress } from "@/lib/auto-save";
 import type { Course } from "@/types";
 
-interface ResumableCoursesProps {
+interface CoursesWithProgressProps {
   onResumeCourse: (course: Course) => void;
 }
 
-export const ResumableCourses: FC<ResumableCoursesProps> = ({ onResumeCourse }) => {
+export const CoursesWithProgress: FC<CoursesWithProgressProps> = ({ onResumeCourse }) => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -17,10 +17,10 @@ export const ResumableCourses: FC<ResumableCoursesProps> = ({ onResumeCourse }) 
     const loadCourses = async () => {
       setIsLoading(true);
       try {
-        const resumableCourses = await getResumableCourses();
+        const resumableCourses = await getCoursesWithProgress();
         setCourses(resumableCourses);
       } catch (error) {
-        console.error("Failed to load resumable courses:", error);
+        console.error("Failed to load courses with progress:", error);
       } finally {
         setIsLoading(false);
       }
@@ -54,7 +54,7 @@ export const ResumableCourses: FC<ResumableCoursesProps> = ({ onResumeCourse }) 
   }
   
   if (courses.length === 0) {
-    return null; // Don't show anything if there are no resumable courses
+    return null; // Don't show anything if there are no courses with progress
   }
   
   return (
