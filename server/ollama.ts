@@ -43,7 +43,7 @@ export async function generateLearningCards(topic: string, ageGroup: string, cou
       // response_format: { type: 'json' }, // Removed this based on linter error
     });
 
-    console.log("Raw response from Ollama:", response.message.content);
+    //console.log("Raw response from Ollama:", response.message.content);
 
     // Clean the response content to remove invalid control characters
     const cleanedContent = response.message.content.replace(/[\u0000-\u001F\u007F-\u009F]/g, '');
@@ -66,7 +66,7 @@ export async function generateLearningCards(topic: string, ageGroup: string, cou
         }
       }
 
-      console.log("Extracted JSON:", extractedJson);
+      //console.log("Extracted JSON:", extractedJson);
       
       // Parse the extracted JSON
       const cardsData = JSON.parse(extractedJson);

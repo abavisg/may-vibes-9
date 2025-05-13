@@ -38,8 +38,7 @@ export function useSavedCourses(): UseSavedCoursesReturn {
   const coursesQuery = useQuery({
     queryKey: ['/api/courses'],
     queryFn: async () => {
-      const response = await apiRequest("GET", "/api/courses");
-      return response.json() as Promise<Course[]>;
+      return apiRequest<Course[]>("GET", "/api/courses");
     },
     enabled: false, // Changed from true to false
   });
@@ -49,8 +48,7 @@ export function useSavedCourses(): UseSavedCoursesReturn {
     queryKey: ['/api/course', selectedCourseId],
     queryFn: async () => {
       if (!selectedCourseId) return null;
-      const response = await apiRequest("GET", `/api/course/${selectedCourseId}`);
-      return response.json() as Promise<Course>;
+      return apiRequest<Course>("GET", `/api/course/${selectedCourseId}`);
     },
     enabled: !!selectedCourseId, // Only run when a course ID is selected
   });
@@ -58,8 +56,7 @@ export function useSavedCourses(): UseSavedCoursesReturn {
   // Mutation to save a course
   const saveMutation = useMutation({
     mutationFn: async (courseData: SaveCourseRequest) => {
-      const response = await apiRequest("POST", "/api/save-course", courseData);
-      return response.json() as Promise<Course>;
+      return apiRequest<Course>("POST", "/api/save-course", courseData);
     },
     onSuccess: () => {
       toast({
@@ -81,8 +78,7 @@ export function useSavedCourses(): UseSavedCoursesReturn {
   // Mutation to update course progress
   const updateCourseProgressMutation = useMutation({
     mutationFn: async ({ courseId, currentCardIndex }: { courseId: number; currentCardIndex: number }) => {
-      const response = await apiRequest("POST", `/api/course/${courseId}/progress`, { currentCardIndex });
-      return response.json() as Promise<Course>;
+      return apiRequest<Course>("POST", `/api/course/${courseId}/progress`, { currentCardIndex });
     },
     onSuccess: (data) => {
       console.log("Course progress updated successfully:", data);
