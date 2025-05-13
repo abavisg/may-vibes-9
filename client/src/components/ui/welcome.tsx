@@ -32,13 +32,24 @@ export const Welcome: FC<WelcomeProps> = ({ onStart, onParentMode }) => {
         Start Learning
       </Button>
 
-      <Button
-        variant="link"
-        className="text-primary hover:underline"
-        onClick={onParentMode}
-      >
-        I'm a parent
-      </Button>
+      <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-4">
+        <Button
+          variant="link"
+          className="text-primary hover:underline"
+          onClick={onParentMode}
+        >
+          I'm a parent
+        </Button>
+        
+        <a href="/saved-courses">
+          <Button
+            variant="link"
+            className="text-primary hover:underline flex items-center"
+          >
+            <i className="ri-bookmark-line mr-1"></i> My Saved Courses
+          </Button>
+        </a>
+      </div>
     </div>
   );
 };

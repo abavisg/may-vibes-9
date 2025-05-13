@@ -66,13 +66,24 @@ export const CardScreen: FC<CardScreenProps> = ({ onBackToHome }) => {
       
       {/* Top bar */}
       <div className="w-full flex justify-between items-center mb-4">
-        <Button 
-          variant="link"
-          className="text-primary flex items-center font-semibold p-0"
-          onClick={onBackToHome}
-        >
-          <i className="ri-home-line mr-1"></i> Home
-        </Button>
+        <div className="flex items-center gap-4">
+          <Button 
+            variant="link"
+            className="text-primary flex items-center font-semibold p-0"
+            onClick={onBackToHome}
+          >
+            <i className="ri-home-line mr-1"></i> Home
+          </Button>
+          
+          <a href="/saved-courses">
+            <Button 
+              variant="link"
+              className="text-primary flex items-center font-semibold p-0"
+            >
+              <i className="ri-bookmark-line mr-1"></i> Saved Courses
+            </Button>
+          </a>
+        </div>
         
         <div className="flex items-center">
           <span className="font-bold text-lg mr-2">{topic}</span>

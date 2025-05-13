@@ -117,21 +117,25 @@ export const ParentMode: FC<ParentModeProps> = ({ onBack, onCreateCourse }) => {
           <h3 className="text-xl font-bold mb-4">Additional Options</h3>
           
           <div className="space-y-3">
-            <Button
-              variant="outline"
-              className="w-full bg-white border border-gray-300 text-neutral-800 text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition flex justify-between items-center h-auto"
-            >
-              <span className="font-medium">View Saved Courses</span>
-              <i className="ri-arrow-right-s-line"></i>
-            </Button>
+            <a href="/saved-courses" className="block w-full">
+              <Button
+                variant="outline"
+                className="w-full bg-white border border-gray-300 text-neutral-800 text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition flex justify-between items-center h-auto"
+              >
+                <span className="font-medium">View Saved Courses</span>
+                <i className="ri-arrow-right-s-line"></i>
+              </Button>
+            </a>
             
-            <Button
-              variant="outline"
-              className="w-full bg-white border border-gray-300 text-neutral-800 text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition flex justify-between items-center h-auto"
-            >
-              <span className="font-medium">Print/Download Cards</span>
-              <i className="ri-arrow-right-s-line"></i>
-            </Button>
+            <a href="/saved-courses" className="block w-full">
+              <Button
+                variant="outline"
+                className="w-full bg-white border border-gray-300 text-neutral-800 text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition flex justify-between items-center h-auto"
+              >
+                <span className="font-medium">Print/Download Cards</span>
+                <i className="ri-arrow-right-s-line"></i>
+              </Button>
+            </a>
             
             <Button
               variant="outline"
