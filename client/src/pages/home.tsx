@@ -6,6 +6,7 @@ import { CourseLength } from "@/components/ui/course-length";
 import { CardScreen } from "@/components/layout/card-screen";
 import { ParentMode } from "@/components/ui/parent-mode";
 import { DailyView } from "@/components/ui/daily-view";
+import { ResumableCourses } from "@/components/layout/ResumableCourses";
 import { useCourseState } from "@/hooks/use-course-state";
 import { hasUnviewedCards } from "@/lib/daily-cards";
 import type { Course } from "@/types";
@@ -18,7 +19,8 @@ enum Screen {
   Length = "length",
   Cards = "cards",
   Parent = "parent",
-  Daily = "daily"
+  Daily = "daily",
+  Resumable = "resumable",
 }
 
 export default function Home() {
@@ -48,6 +50,7 @@ export default function Home() {
     
     // Update the course state
     setState({
+      id: course.id,
       topic: course.topic,
       ageGroup: course.ageGroup as any, // Type cast as needed
       courseLength: course.courseLength as any, // Type cast as needed
@@ -73,6 +76,7 @@ export default function Home() {
           onStart={() => navigateToScreen(Screen.Topic)} 
           onParentMode={() => navigateToScreen(Screen.Parent)}
           onDailyCards={() => navigateToScreen(Screen.Daily)}
+          onResumeCourseSelection={() => navigateToScreen(Screen.Resumable)}
         />
       )}
       
@@ -107,6 +111,10 @@ export default function Home() {
 
       {currentScreen === Screen.Daily && (
         <DailyView onBackToHome={() => navigateToScreen(Screen.Welcome)} />
+      )}
+
+      {currentScreen === Screen.Resumable && (
+        <ResumableCourses onResumeCourse={handleResumeCourse} />
       )}
     </div>
   );

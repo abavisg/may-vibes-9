@@ -16,7 +16,7 @@ interface CardScreenProps {
 export const CardScreen: FC<CardScreenProps> = ({ onBackToHome }) => {
   const { state, nextCard, prevCard } = useCourseState();
   const { topic, ageGroup, courseLength, cards, currentCardIndex, isLoading, totalCards } = state;
-  const { saveCourse } = useSavedCourses();
+  const { saveCourse, updateCourseProgress } = useSavedCourses();
   const [courseSaved, setCourseSaved] = useState(false);
   const [dailyMode, setDailyMode] = useState(false);
 
@@ -203,7 +203,13 @@ export const CardScreen: FC<CardScreenProps> = ({ onBackToHome }) => {
         <Button
           className="bg-primary text-white rounded-full h-12 w-12 flex items-center justify-center hover:bg-primary/90 transition"
           disabled={currentCardIndex === totalCards - 1 || isLoading || cards.length === 0}
-          onClick={nextCard}
+          onClick={() => {
+            // Auto-save progress if it's a saved course
+            if (state.id) {
+              updateCourseProgress(state.id, state.currentCardIndex + 1);
+            }
+            nextCard(); // Move to the next card
+          }}
         >
           <i className="ri-arrow-right-s-line text-xl"></i>
         </Button>

@@ -2,17 +2,16 @@ import { FC, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useCourseState } from "@/hooks/use-course-state";
 import { getDailyCourses } from "@/lib/daily-cards";
-import { ResumableCourses } from "@/components/ui/resumable-courses";
 import type { Course } from "@/types";
 
 interface WelcomeProps {
   onStart: () => void;
   onParentMode: () => void;
   onDailyCards?: () => void;
-  onResumeCourse?: (course: Course) => void;
+  onResumeCourseSelection: () => void;
 }
 
-export const Welcome: FC<WelcomeProps> = ({ onStart, onParentMode, onDailyCards, onResumeCourse }) => {
+export const Welcome: FC<WelcomeProps> = ({ onStart, onParentMode, onDailyCards, onResumeCourseSelection }) => {
   const { resetState } = useCourseState();
   const [hasDailyCards, setHasDailyCards] = useState(false);
   
@@ -36,9 +35,6 @@ export const Welcome: FC<WelcomeProps> = ({ onStart, onParentMode, onDailyCards,
         <p className="text-xl">Let's explore something amazing today!</p>
       </div>
 
-      {/* Only show if onResumeCourse is provided */}
-      {onResumeCourse && <ResumableCourses onResumeCourse={onResumeCourse} />}
-
       <Button
         size="lg"
         className="bg-primary text-white text-xl font-bold py-4 px-8 rounded-full shadow-lg hover:bg-primary/90 transition mb-6"
@@ -54,6 +50,14 @@ export const Welcome: FC<WelcomeProps> = ({ onStart, onParentMode, onDailyCards,
           onClick={onParentMode}
         >
           I'm a parent
+        </Button>
+        
+        <Button
+          variant="link"
+          className="text-primary hover:underline flex items-center"
+          onClick={onResumeCourseSelection}
+        >
+          <i className="ri-play-circle-line mr-1"></i> Resume Course
         </Button>
         
         <a href="/saved-courses">

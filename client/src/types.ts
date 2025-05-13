@@ -23,6 +23,7 @@ export interface Course {
 }
 
 export interface CourseState {
+  id?: number;
   topic: string;
   ageGroup: AgeGroup | null;
   courseLength: CourseLength | null;
