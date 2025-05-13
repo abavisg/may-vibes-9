@@ -2,14 +2,17 @@ import { FC, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useCourseState } from "@/hooks/use-course-state";
 import { getDailyCourses } from "@/lib/daily-cards";
+import { ResumableCourses } from "@/components/ui/resumable-courses";
+import type { Course } from "@/types";
 
 interface WelcomeProps {
   onStart: () => void;
   onParentMode: () => void;
   onDailyCards?: () => void;
+  onResumeCourse?: (course: Course) => void;
 }
 
-export const Welcome: FC<WelcomeProps> = ({ onStart, onParentMode, onDailyCards }) => {
+export const Welcome: FC<WelcomeProps> = ({ onStart, onParentMode, onDailyCards, onResumeCourse }) => {
   const { resetState } = useCourseState();
   const [hasDailyCards, setHasDailyCards] = useState(false);
   
@@ -32,6 +35,9 @@ export const Welcome: FC<WelcomeProps> = ({ onStart, onParentMode, onDailyCards 
         </h1>
         <p className="text-xl">Let's explore something amazing today!</p>
       </div>
+
+      {/* Only show if onResumeCourse is provided */}
+      {onResumeCourse && <ResumableCourses onResumeCourse={onResumeCourse} />}
 
       <Button
         size="lg"

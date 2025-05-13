@@ -37,6 +37,7 @@ interface CourseContextType {
   prevCard: () => void;
   resetState: () => void;
   generateCards: () => void;
+  setState: (newState: Partial<CourseState>) => void;
 }
 
 const CourseContext = createContext<CourseContextType | undefined>(undefined);
@@ -121,6 +122,11 @@ export function CourseProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  // Method to directly update state with partial state
+  const setStateDirectly = (newState: Partial<CourseState>) => {
+    setState(prev => ({ ...prev, ...newState }));
+  };
+
   const value = {
     state,
     setTopic,
@@ -129,7 +135,8 @@ export function CourseProvider({ children }: { children: ReactNode }) {
     nextCard,
     prevCard,
     resetState,
-    generateCards
+    generateCards,
+    setState: setStateDirectly
   };
 
   return React.createElement(CourseContext.Provider, 

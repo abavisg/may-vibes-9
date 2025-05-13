@@ -8,6 +8,7 @@ import { ParentMode } from "@/components/ui/parent-mode";
 import { DailyView } from "@/components/ui/daily-view";
 import { useCourseState } from "@/hooks/use-course-state";
 import { hasUnviewedCards } from "@/lib/daily-cards";
+import type { Course } from "@/types";
 
 // Define screens enum for easier navigation
 enum Screen {
@@ -22,7 +23,8 @@ enum Screen {
 
 export default function Home() {
   const [currentScreen, setCurrentScreen] = useState<Screen>(Screen.Welcome);
-  const { generateCards } = useCourseState();
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const { generateCards, setTopic, setAgeGroup, setCourseLength, setState } = useCourseState();
 
   // Check for unviewed daily cards on mount
   useEffect(() => {
@@ -37,6 +39,26 @@ export default function Home() {
 
   const navigateToScreen = (screen: Screen) => {
     setCurrentScreen(screen);
+  };
+  
+  // Handle resuming a course
+  const handleResumeCourse = (course: Course) => {
+    // Set the course state from the saved course
+    setSelectedCourse(course);
+    
+    // Update the course state
+    setState({
+      topic: course.topic,
+      ageGroup: course.ageGroup as any, // Type cast as needed
+      courseLength: course.courseLength as any, // Type cast as needed
+      cards: Array.isArray(course.cards) ? course.cards : [],
+      currentCardIndex: course.currentCardIndex || 0,
+      isLoading: false,
+      totalCards: Array.isArray(course.cards) ? course.cards.length : 0
+    });
+    
+    // Navigate to the cards screen
+    navigateToScreen(Screen.Cards);
   };
 
   const handleParentCreateCourse = () => {
