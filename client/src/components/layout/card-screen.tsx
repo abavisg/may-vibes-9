@@ -6,6 +6,7 @@ import { useSavedCourses } from "@/hooks/use-saved-courses";
 import { LearningCard } from "@/components/ui/learning-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Toaster } from "@/components/ui/toaster";
+import { speakCard, stopSpeech, isSpeaking } from "@/lib/text-to-speech";
 
 interface CardScreenProps {
   onBackToHome: () => void;
@@ -23,20 +24,32 @@ export const CardScreen: FC<CardScreenProps> = ({ onBackToHome }) => {
     window.scrollTo(0, 0);
   }, [currentCardIndex]);
 
+  // State to track speaking status
+  const [isSpeakingNow, setIsSpeakingNow] = useState(false);
+  
+  // Update speaking status
+  useEffect(() => {
+    const checkSpeakingInterval = setInterval(() => {
+      setIsSpeakingNow(isSpeaking());
+    }, 300);
+    
+    return () => {
+      clearInterval(checkSpeakingInterval);
+      stopSpeech(); // Stop any speech when component unmounts
+    };
+  }, []);
+  
   // Function to handle text-to-speech
   const handleReadAloud = () => {
     if (!cards[currentCardIndex]) return;
     
-    const currentCard = cards[currentCardIndex];
-    const textToRead = `${currentCard.title}. ${currentCard.content.replace(/<[^>]*>/g, '')}. Fun Fact! ${currentCard.funFact}`;
+    if (isSpeakingNow) {
+      stopSpeech();
+      return;
+    }
     
-    // Use the Web Speech API
-    const speech = new SpeechSynthesisUtterance();
-    speech.text = textToRead;
-    speech.rate = 0.9; // Slightly slower for kids
-    speech.pitch = 1.1; // Slightly higher pitch
-    window.speechSynthesis.cancel(); // Cancel any ongoing speech
-    window.speechSynthesis.speak(speech);
+    const currentCard = cards[currentCardIndex];
+    speakCard(currentCard.title, currentCard.content);
   };
 
   // Function to handle save course using our database

@@ -54,18 +54,25 @@ export class MemStorage implements IStorage {
 
   async saveCourse(course: InsertCourse): Promise<Course> {
     const id = this.courseId++;
-    const newCourse: Course = { ...course, id };
+    // Ensure all required properties are set with proper types
+    const newCourse: Course = { 
+      ...course, 
+      id,
+      userId: course.userId ?? null,
+      saved: course.saved ?? null
+    };
     this.courses.set(id, newCourse);
     return newCourse;
   }
 
   async getUserCourses(userId: number | null): Promise<Course[]> {
     const result: Course[] = [];
-    for (const course of this.courses.values()) {
+    // Use Array.from to avoid issues with the MapIterator
+    Array.from(this.courses.values()).forEach(course => {
       if (userId === null || course.userId === userId) {
         result.push(course);
       }
-    }
+    });
     return result;
   }
 
