@@ -9,6 +9,17 @@ export interface LearningCard {
   funFact: string;
 }
 
+export interface Course {
+  id: number;
+  topic: string;
+  ageGroup: string;
+  courseLength: string;
+  cards: any; // Using any for storing the serialized cards in the database
+  userId: number | null;
+  saved: boolean | null;
+  createdAt: string;
+}
+
 export interface CourseState {
   topic: string;
   ageGroup: AgeGroup | null;

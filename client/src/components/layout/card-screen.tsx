@@ -1,9 +1,11 @@
-import { FC, useEffect } from "react";
+import { FC, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useCourseState } from "@/hooks/use-course-state";
+import { useSavedCourses } from "@/hooks/use-saved-courses";
 import { LearningCard } from "@/components/ui/learning-card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Toaster } from "@/components/ui/toaster";
 
 interface CardScreenProps {
   onBackToHome: () => void;
@@ -11,7 +13,10 @@ interface CardScreenProps {
 
 export const CardScreen: FC<CardScreenProps> = ({ onBackToHome }) => {
   const { state, nextCard, prevCard } = useCourseState();
-  const { topic, ageGroup, cards, currentCardIndex, isLoading, totalCards } = state;
+  const { topic, ageGroup, courseLength, cards, currentCardIndex, isLoading, totalCards } = state;
+  const { saveCourse } = useSavedCourses();
+  const [courseSaved, setCourseSaved] = useState(false);
+  const [dailyMode, setDailyMode] = useState(false);
 
   useEffect(() => {
     // Scroll to top when navigating between cards
@@ -34,14 +39,21 @@ export const CardScreen: FC<CardScreenProps> = ({ onBackToHome }) => {
     window.speechSynthesis.speak(speech);
   };
 
-  // Function to handle save course (simplified version)
+  // Function to handle save course using our database
   const handleSaveCourse = () => {
-    // In a real app, this would save to local storage or a database
-    alert("Course saved! You can access it in the future.");
+    if (!topic || !ageGroup || !courseLength || cards.length === 0) {
+      return;
+    }
+    
+    // Save the course to the database
+    saveCourse(topic, ageGroup, courseLength, cards);
+    setCourseSaved(true);
   };
 
   // Function to handle daily cards option
   const handleDailyCards = () => {
+    setDailyMode(true);
+    // In a real implementation, this would set up a daily notification or schedule
     alert("You'll receive one card per day! Come back tomorrow for more.");
   };
 
@@ -50,6 +62,8 @@ export const CardScreen: FC<CardScreenProps> = ({ onBackToHome }) => {
 
   return (
     <div className="flex-1 flex flex-col items-center justify-between p-4 md:p-6">
+      <Toaster />
+      
       {/* Top bar */}
       <div className="w-full flex justify-between items-center mb-4">
         <Button 
@@ -82,6 +96,11 @@ export const CardScreen: FC<CardScreenProps> = ({ onBackToHome }) => {
           <span className="text-sm text-neutral-700">
             Card {currentCardIndex + 1} of {totalCards}
           </span>
+          {dailyMode && (
+            <span className="text-sm text-amber-500">
+              <i className="ri-calendar-line mr-1"></i> Daily Mode Activated
+            </span>
+          )}
         </div>
         <Progress value={progressPercentage} className="h-2" />
       </div>
@@ -117,20 +136,28 @@ export const CardScreen: FC<CardScreenProps> = ({ onBackToHome }) => {
         <div className="flex items-center space-x-3">
           <Button
             variant="outline"
-            className="bg-white text-green-500 border-2 border-green-500 rounded-full flex items-center px-4 py-2 hover:bg-green-50 transition h-auto"
+            className={`bg-white border-2 rounded-full flex items-center px-4 py-2 transition h-auto
+              ${courseSaved 
+                ? 'text-green-700 border-green-700 bg-green-50' 
+                : 'text-green-500 border-green-500 hover:bg-green-50'}`}
             onClick={handleSaveCourse}
-            disabled={isLoading || cards.length === 0}
+            disabled={isLoading || cards.length === 0 || courseSaved}
           >
-            <i className="ri-save-line mr-1"></i> Save Course
+            <i className={courseSaved ? "ri-check-line mr-1" : "ri-save-line mr-1"}></i> 
+            {courseSaved ? "Course Saved" : "Save Course"}
           </Button>
           
           <Button
             variant="outline"
-            className="bg-white text-amber-500 border-2 border-amber-500 rounded-full flex items-center px-4 py-2 hover:bg-amber-50 transition h-auto"
+            className={`bg-white border-2 rounded-full flex items-center px-4 py-2 transition h-auto
+              ${dailyMode 
+                ? 'text-amber-700 border-amber-700 bg-amber-50' 
+                : 'text-amber-500 border-amber-500 hover:bg-amber-50'}`}
             onClick={handleDailyCards}
-            disabled={isLoading || cards.length === 0}
+            disabled={isLoading || cards.length === 0 || dailyMode}
           >
-            <i className="ri-calendar-line mr-1"></i> Daily Cards
+            <i className="ri-calendar-line mr-1"></i> 
+            {dailyMode ? "Daily Mode On" : "Daily Cards"}
           </Button>
         </div>
         
