@@ -64,7 +64,24 @@ export default function MyCoursesList() { // Renamed component
   };
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-6">My Courses</h1>
+      <div className="w-full flex justify-between items-center mb-6">
+        <div className="flex items-center gap-4">
+          <Link href="/">
+            <Button 
+              variant="link"
+              className="text-primary flex items-center font-semibold p-0"
+            >
+              <i className="ri-home-line mr-1"></i> Home
+            </Button>
+          </Link>
+        </div>
+        
+        <h1 className="text-3xl font-bold">My Courses</h1>
+        
+        <div className="w-[100px]">
+          {/* Empty div for balanced layout */}
+        </div>
+      </div>
       
       {isLoading ? (
         <div className="space-y-4">
