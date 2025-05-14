@@ -9,26 +9,34 @@ import { LearningCard } from "@/components/ui/learning-card";
 import { speakCard, stopSpeech } from "@/lib/text-to-speech";
 import { useToast } from "@/hooks/use-toast";
 import { calculateProgressPercentage, formatProgress } from "@/lib/utils";
+import React from "react";
 
 interface CourseCardsViewProps {
   params: { id?: string }; // Define the params prop structure
 }
 
-export default function CourseCardsView({ params }: CourseCardsViewProps) {
-  console.log('CourseCardsView rendered with params:', params);
+const MemoizedCourseCardsView = React.memo(function CourseCardsView({ params }: CourseCardsViewProps) {
+  // Track render count for debugging
+  const renderCount = React.useRef(0);
+  renderCount.current++;
+  
+  console.log(`CourseCardsView rendered with params: ${JSON.stringify(params)} (Render #${renderCount.current})`);
+  
   const { selectedCourse, isLoading, updateCourseProgress, selectCourse } = useMyCourses();
   const { state: courseState, loadCourse, setState: setCourseStateDirectly } = useCourseState();
   const [location, navigate] = useLocation();
   const courseId = params.id ? parseInt(params.id, 10) : null; // Get ID from params prop
   const { toast } = useToast();
+  
+  // Add a ref to track if we've already loaded the course
+  const hasLoadedCourseRef = React.useRef<Record<string, boolean>>({});
+  // Add local state to prevent redundant operations
+  const [hasTriggeredFetch, setHasTriggeredFetch] = useState(false);
+  const [hasLoadedCourse, setHasLoadedCourse] = useState(false);
 
   // Card viewing state (derived from courseState)
   const currentCardIndex = courseState.currentCardIndex;
   const totalCards = courseState.totalCards;
-  // Simplified state management - let useCourseState handle these
-  // const isSpeakingNow = false; // Assuming speech state is managed elsewhere or will be refactored
-  // const isNewProgress = false; // Assuming new progress state is managed elsewhere or will be refactored
-  // const courseSaved = false; // Assuming save state is managed elsewhere or will be refactored
   
   // State to control resume options display (still needed locally based on initial load)
   const [showResumeOptions, setShowResumeOptions] = useState(false);
@@ -39,62 +47,71 @@ export default function CourseCardsView({ params }: CourseCardsViewProps) {
 
   // Effect to initiate fetching the course data when the ID changes
   useEffect(() => {
-    console.log('CourseCardsView useEffect: courseId=', courseId);
-    if (courseId) {
+    if (courseId && !hasTriggeredFetch) {
+      console.log('CourseCardsView useEffect: Triggering fetch for courseId=', courseId);
       // Trigger the fetch in useMyCourses by setting the selected ID
       selectCourse(courseId);
-    } else {
+      setHasTriggeredFetch(true);
+    } else if (!courseId) {
       console.error("No course ID provided in URL");
       navigate("/my-courses"); // Fallback to my courses list if no ID
     }
-  }, [courseId, selectCourse, navigate]);
+  }, [courseId, selectCourse, navigate, hasTriggeredFetch]);
 
   // Effect to load the fetched course into useCourseState and determine initial view
   useEffect(() => {
-    console.log('CourseCardsView useEffect: selectedCourse=', selectedCourse, 'isLoading=', isLoading);
-    if (!isLoading && selectedCourse) {
+    // Generate a unique key for this course ID to track loading
+    const courseKey = `course-${courseId}`;
+    
+    // Only proceed if we haven't loaded this course yet and we have the data
+    if (!isLoading && selectedCourse && !hasLoadedCourse && !hasLoadedCourseRef.current[courseKey]) {
       console.log("Selected course data loaded in CourseCardsView useEffect:", selectedCourse);
       
-      // Load the fetched course into the CourseState. Determine startFromBeginning based on startIndex and saved progress.
+      // Mark that we've loaded this course
+      hasLoadedCourseRef.current[courseKey] = true;
+      setHasLoadedCourse(true);
+      
+      // Load the fetched course into the CourseState
       const startFromBeginning = startIndex === 0 && (selectedCourse.currentCardIndex || 0) > 0;
       loadCourse(selectedCourse, startFromBeginning);
       
-      // Show resume options if we are starting from the beginning (startIndex 0) but there is saved progress
+      // Show resume options if appropriate
       setShowResumeOptions(startFromBeginning);
-
-    } else if (!isLoading && !selectedCourse && courseId) {
-         console.error(`Course with ID ${courseId} not found after fetch attempt.`);
-        toast({
-          title: "Course not found",
-          description: "The requested course could not be loaded.",
-          variant: "destructive",
-        });
-        navigate("/my-courses"); // Fallback
+    } else if (!isLoading && !selectedCourse && courseId && !hasLoadedCourseRef.current[courseKey]) {
+      // Only show the error once
+      hasLoadedCourseRef.current[courseKey] = true;
+      console.error(`Course with ID ${courseId} not found after fetch attempt.`);
+      toast({
+        title: "Course not found",
+        description: "The requested course could not be loaded.",
+        variant: "destructive",
+      });
+      navigate("/my-courses"); // Fallback
     }
-     // Do NOT include courseState in dependencies to prevent infinite loops
-  }, [selectedCourse, isLoading, courseId, navigate, toast, startIndex, loadCourse]);
+  }, [selectedCourse, isLoading, courseId, navigate, toast, startIndex, loadCourse, hasLoadedCourse]);
 
-  // Note: The effect to update the URL based on currentCardIndex might need careful review
-  // to ensure it doesn't conflict with the initial load logic or cause unnecessary navigations.
-  // For now, let's keep it but be aware it might need adjustment.
+  // Effect to update the URL based on currentCardIndex - completely rewritten to avoid loops
   useEffect(() => {
-    // Only update URL if the course is loaded and we are viewing cards (not resume options)
-    // and the current index in courseState is different from the initially loaded saved progress
-    // This prevents immediately changing the URL when loading a course with saved progress > 0.
-    const initialLoadedIndex = selectedCourse?.currentCardIndex || 0;
-    
-    // FIXED: Added additional condition to prevent infinite loops - only update URL when user manually changes cards
-    const isUserInitiatedChange = courseState.currentCardIndex !== initialLoadedIndex && 
-                                 !isLoading && 
-                                 selectedCourse && 
-                                 courseState.id;
-                                 
-    if (!showResumeOptions && isUserInitiatedChange) {
-      console.log(`CourseCardsView useEffect: Updating URL to startIndex ${courseState.currentCardIndex}`);
-      // Use replace: true to prevent adding to browser history and causing additional navigation events
-      navigate(`/course/${courseState.id}/cards?startIndex=${courseState.currentCardIndex}`, { replace: true });
+    // Only update URL when cards are being viewed (not resume options)
+    // and when the user manually changes cards (not during initial load)
+    if (
+      !showResumeOptions && 
+      courseState.id && 
+      courseState.currentCardIndex !== (selectedCourse?.currentCardIndex || 0) &&
+      hasLoadedCourse // Only update URL after initial course load
+    ) {
+      // Use a different URL update strategy that won't trigger re-renders
+      window.history.replaceState(
+        {}, 
+        '', 
+        `/course/${courseState.id}/cards?startIndex=${courseState.currentCardIndex}`
+      );
+      
+      console.log(
+        `CourseCardsView: Updated URL to startIndex ${courseState.currentCardIndex} without navigation`
+      );
     }
-  }, [courseState.currentCardIndex, courseState.id, navigate, showResumeOptions, selectedCourse?.currentCardIndex, isLoading, selectedCourse]);
+  }, [courseState.currentCardIndex, courseState.id, showResumeOptions, selectedCourse?.currentCardIndex, hasLoadedCourse]);
 
   // Function to handle saving the current course progress (uses useMyCourses mutation)
   const handleSaveCourse = useCallback(() => {
@@ -333,4 +350,6 @@ export default function CourseCardsView({ params }: CourseCardsViewProps) {
       )}
     </div>
   );
-} 
+});
+
+export default MemoizedCourseCardsView; 

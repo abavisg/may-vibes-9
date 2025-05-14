@@ -60,8 +60,17 @@ export function useMyCourses(): UseMyCoursesReturn {
         // Check if already in courses cache before fetching
         const courses = queryClient.getQueryData<Course[]>(['/api/courses']);
         const cachedCourse = courses?.find(course => course.id === selectedCourseId);
-        if (cachedCourse) {
-          console.log(`Using cached course data for ID ${selectedCourseId}`);
+        
+        // Check if we already have this specific course in the individual course cache
+        const cachedDetailCourse = queryClient.getQueryData<Course>(['/api/course', selectedCourseId]);
+        
+        if (cachedDetailCourse) {
+          console.log(`Using cached detail course data for ID ${selectedCourseId}`);
+          return cachedDetailCourse;
+        } else if (cachedCourse) {
+          console.log(`Using cached course data from list for ID ${selectedCourseId}`);
+          // Add to individual course cache for future use
+          queryClient.setQueryData(['/api/course', selectedCourseId], cachedCourse);
           return cachedCourse;
         }
         
@@ -112,8 +121,27 @@ export function useMyCourses(): UseMyCoursesReturn {
     mutationFn: async (courseData: SaveCourseRequest) => {
       return apiRequest<Course>("POST", "/api/save-course", courseData);
     },
-    onSuccess: () => {
-      // Invalidate the courses query to show the new course in the list
+    onSuccess: (savedCourse) => {
+      // Add the new course to the cache directly to ensure it's immediately available
+      const courses = queryClient.getQueryData<Course[]>(['/api/courses']) || [];
+      
+      // Check if course already exists in cache and update or add it
+      const courseIndex = courses.findIndex(c => c.id === savedCourse.id);
+      if (courseIndex >= 0) {
+        // Update existing course
+        courses[courseIndex] = savedCourse;
+      } else {
+        // Add new course
+        courses.push(savedCourse);
+      }
+      
+      // Update courses cache
+      queryClient.setQueryData(['/api/courses'], courses);
+      
+      // Also add the course to the individual course cache
+      queryClient.setQueryData(['/api/course', savedCourse.id], savedCourse);
+      
+      // Then invalidate for a background refresh
       queryClient.invalidateQueries({ queryKey: ['/api/courses'] });
     },
     onError: (error) => {
