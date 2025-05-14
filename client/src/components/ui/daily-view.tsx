@@ -1,7 +1,8 @@
-import { FC, useState, useEffect } from "react";
+import type { FC } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { LearningCard } from "@/components/ui/learning-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getDailyCourses, getTodayCard, removeFromDaily } from "@/lib/daily-cards";
@@ -50,7 +51,7 @@ export const DailyView: FC<DailyViewProps> = ({ onBackToHome }) => {
       removeFromDaily(courseId);
       
       // Update the list
-      const updatedCourses = dailyCourses.filter(c => c.courseId !== courseId);
+      const updatedCourses = dailyCourses.filter((c: any) => c.courseId !== courseId);
       setDailyCourses(updatedCourses);
       
       // If the removed course was selected, clear selection

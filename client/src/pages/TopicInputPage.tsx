@@ -1,4 +1,3 @@
-import React from 'react';
 import { useLocation } from "wouter";
 import { TopicInput } from "@/components/ui/topic-input";
 import { useCourseState } from "@/hooks/use-course-state";

@@ -1,7 +1,7 @@
 /**
  * Utility functions for managing the daily card learning schedule
  */
-import type { Course, LearningCard } from "@/types";
+import type { LearningCard } from "@/types";
 
 // Storage keys
 const DAILY_COURSES_KEY = 'kidlearn_daily_courses';

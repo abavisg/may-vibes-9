@@ -1,12 +1,11 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { Welcome } from "@/components/ui/welcome";
 import { useCourseState } from "@/hooks/use-course-state";
 import { hasUnviewedCards } from "@/lib/daily-cards";
-import type { Course } from "@/types";
 
 export default function Home() {
-  const { generateCards, setTopic, setAgeGroup, setCourseLength } = useCourseState();
+  const { } = useCourseState();
   const [, navigate] = useLocation();
 
   useEffect(() => {
@@ -18,15 +17,11 @@ export default function Home() {
     }
   }, []);
 
-  const handleStartLearning = () => navigate("/topic");
-  const handleParentMode = () => navigate("/parent");
-  const handleMyCourses = () => navigate("/my-courses");
-
   return (
     <div className="min-h-screen flex flex-col font-sans">
       <Welcome 
         onStart={() => navigate('/create/topic')}
-        onParentMode={handleParentMode}
+        onParentMode={() => navigate("/parent")}
         onDailyCards={() => { console.log("Daily Cards Clicked"); }}
       />
     </div>

@@ -1,13 +1,13 @@
-import React from 'react';
 import { useLocation } from "wouter";
 import { AgeSelector } from "@/components/ui/age-selector";
 import { useCourseState } from "@/hooks/use-course-state";
+import type { AgeGroup } from "@/types";
 
 export default function AgeSelectorPage() {
   const [, navigate] = useLocation();
   const { setAgeGroup } = useCourseState();
 
-  const handleNext = (ageGroup: string) => {
+  const handleNext = (ageGroup: AgeGroup) => {
     setAgeGroup(ageGroup);
     navigate("/create/length");
   };

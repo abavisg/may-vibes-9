@@ -1,8 +1,8 @@
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, { createContext, useContext, useState, type ReactNode } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { AgeGroup, CourseLength, CourseState, GenerateCardsRequest, LearningCard, GenerateCardsResponse, Course } from "@/types";
+import type { AgeGroup, CourseLength, CourseState, GenerateCardsRequest, GenerateCardsResponse, Course } from "@/types";
 
 const DEFAULT_STATE: CourseState = {
   topic: "",
@@ -19,13 +19,6 @@ const DEFAULT_COURSE_LENGTHS: Record<AgeGroup, CourseLength> = {
   "5-7": "quick",
   "8-10": "standard",
   "11-12": "deep"
-};
-
-// Map course lengths to card counts
-const COURSE_LENGTH_CARDS: Record<CourseLength, number> = {
-  "quick": 5,
-  "standard": 10,
-  "deep": 15
 };
 
 interface CourseContextType {

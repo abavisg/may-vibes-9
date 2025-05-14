@@ -1,4 +1,3 @@
-import React from 'react';
 import { useLocation } from "wouter";
 import { ParentMode } from "@/components/ui/parent-mode";
 

@@ -8,10 +8,10 @@ This project is a web application with a React frontend and an Express.js backen
 ## Features
 
 - **Generate Learning Cards** – AI-powered generation of educational cards using Ollama.
-- **My Courses** – Allows saving course information and tracking progress for later access.
-- **Retrieved Courses** – Fetch saved courses, potentially filtered by user ID.
+- **My Courses** – Allows saving course information and tracking progress. Tapping a course navigates directly to the learning cards view.
+- **Retrieved Courses** – Fetch my courses, potentially filtered by user ID.
 - **Course Progress Tracking** – Track and update the current position in a course.
-- **Integrated Resume & Start Functionality** – Resume from where you left off or start from the beginning, all from the My Courses screen.
+- **Integrated Resume & Start Functionality** – Resume from where you left off or start from the beginning, directly from the learning cards view if saved progress exists.
 - **Daily Learning Mode** – Schedule cards for daily review.
 - **Age-Appropriate Content** – Customized learning material for different age groups.
 - **Text-to-Speech** – Read cards aloud for better accessibility.
@@ -49,19 +49,19 @@ The project follows a client-server architecture. The client is a React applicat
 - Core backend API endpoints for card generation, saving courses, retrieving courses, and updating course progress.
 - Basic database connection configured for local PostgreSQL.
 - Client-side hooks and API calls for card generation, fetching courses, and updating course progress.
-- Card Screen UI with next/previous navigation, progress indicators, and save functionality.
+- Learning Card View UI with next/previous navigation, progress indicators, and save functionality.
 - Loading indicators during card generation for better user experience.
 - Robust JSON parsing for Ollama responses with fallback mechanisms.
 - Configurable Ollama integration with environment variables for host and model.
 - Request timeout handling and retry mechanism for Ollama calls.
 - Text-to-speech functionality for reading cards aloud.
-- Unified course management with integrated save, resume, and restart functionality.
-- Fixed navigation between card screens and parent views.
+- Unified course management with integrated save, resume, and restart functionality directly within the card view.
+- Fixed navigation between card views and parent views.
 - Age-appropriate content styling and customization.
 - Daily learning mode for scheduled card review.
 - Export functionality for downloading or printing courses.
-- Self-contained card viewer with local state management for improved navigation experience.
 - Modular codebase with clear separation of concerns and routing.
+- Parent mode accessible via the /parent route.
 
 **Remaining Work:**
 - **User Authentication and Authorization:** Implement secure user authentication on the backend and integrate authentication status and token handling on the client-side to protect routes and data.

@@ -1,8 +1,7 @@
-import { FC, useEffect, useState } from "react";
+import { useEffect, useState, type FC } from "react";
 import { Button } from "@/components/ui/button";
 import { useCourseState } from "@/hooks/use-course-state";
 import { getDailyCourses } from "@/lib/daily-cards";
-import type { Course } from "@/types";
 
 interface WelcomeProps {
   onStart: () => void;

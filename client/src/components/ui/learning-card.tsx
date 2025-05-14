@@ -1,5 +1,5 @@
-import { FC, useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { useState, useEffect, type FC } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { LearningCard as LearningCardType } from "@/types";
 import { speakCard, stopSpeech, isSpeaking } from "@/lib/text-to-speech";

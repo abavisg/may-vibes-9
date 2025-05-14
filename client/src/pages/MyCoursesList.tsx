@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMyCourses } from "@/hooks/use-my-courses";
 import { calculateProgressPercentage, formatProgress } from "@/lib/utils"; // Import utils from the correct path
+import type { Course } from "@/types"; // Import Course type
 
 // Get age-appropriate styling (can be moved to a utils file later)
 const getAgeGroupColor = (ageGroup: string) => {
@@ -25,15 +26,19 @@ export default function MyCoursesList() { // Renamed component
   const [, navigate] = useLocation();
 
   // Function to handle course selection and navigation
-  const handleSelectCourse = (courseId: number) => {
-    console.log(`Card clicked for course ID: ${courseId}`);
-    navigate(`/course/${courseId}/cards`);
-    console.log(`Navigating to: /course/${courseId}/cards`);
-  };
+  const handleSelectCourse = (course: Course) => {
+    console.log(`Card clicked for course ID: ${course.id}`);
+    
+    // Navigate to the course cards view, including the currentCardIndex as startIndex
+    navigate(`/course/${course.id}/cards?startIndex=${course.currentCardIndex || 0}`);
+    console.log(`Navigating to: /course/${course.id}/cards?startIndex=${course.currentCardIndex || 0}`);
 
+    // Removed debugging log
+    //console.log(`Debugging: Card with ID ${course.id} was clicked.`);
+  };
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-6">My Courses</h1> {/* Updated heading */}
+      <h1 className="text-3xl font-bold mb-6">My Courses</h1>
       
       {isLoading ? (
         <div className="space-y-4">
@@ -62,7 +67,7 @@ export default function MyCoursesList() { // Renamed component
               <Card
                 key={course.id}
                 className="cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => handleSelectCourse(course.id)}
+                onClick={() => handleSelectCourse(course)}
               >
                 <CardHeader>
                   <CardTitle>{course.topic}</CardTitle>

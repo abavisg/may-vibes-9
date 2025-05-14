@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { useMutation, useQuery, UseMutationResult } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import type { Course, LearningCard } from "@/types";
+import { useMutation, useQuery, type UseMutationResult } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "../lib/queryClient";
+import { useToast } from "./use-toast";
+import type { Course } from "../types";
 
 // Type for the course to be saved
 export interface SaveCourseRequest {
@@ -15,10 +15,11 @@ export interface SaveCourseRequest {
   createdAt: string;
 }
 
-// Type for updating course progress
-interface UpdateCourseProgressRequest {
-  currentCardIndex: number;
-}
+// Removed unused interface UpdateCourseProgressRequest
+// interface UpdateCourseProgressRequest {
+//   courseId: number;
+//   currentCardIndex: number;
+// }
 
 interface UseMyCoursesReturn {
   courses: Course[];
@@ -53,7 +54,7 @@ export function useMyCourses(): UseMyCoursesReturn {
     queryKey: ['/api/course', selectedCourseId],
     queryFn: async () => {
       if (!selectedCourseId) return null;
-      console.log(`Fetching course details for ID: ${selectedCourseId}`);
+      console.log(`useMyCourses: Attempting to fetch course details for ID: ${selectedCourseId}`);
       try {
         const timestamp = new Date().getTime();
         // Check if already in courses cache before fetching
@@ -64,15 +65,32 @@ export function useMyCourses(): UseMyCoursesReturn {
           return cachedCourse;
         }
         
-        // Not in cache, fetch from API
-        const result = await apiRequest<Course>("GET", `/api/course/${selectedCourseId}?_t=${timestamp}`);
+        console.log(`Course ID ${selectedCourseId} not in cache, fetching from API`);
+        const response = await fetch(`/api/course/${selectedCourseId}?_t=${timestamp}`);
+
+        if (!response.ok) {
+          console.error(`API responded with status ${response.status} for course ID ${selectedCourseId}`);
+           // Attempt to read response body for more details if not OK
+          try {
+            const errorBody = await response.json();
+             console.error(`API error response body for ID ${selectedCourseId}:`, errorBody);
+             throw new Error(`Failed to fetch course ${selectedCourseId}: ${response.status} ${response.statusText} - ${errorBody.message || JSON.stringify(errorBody)}`);
+          } catch (parseError) {
+             console.error(`Failed to parse error response body for ID ${selectedCourseId}`, parseError);
+             throw new Error(`Failed to fetch course ${selectedCourseId}: ${response.status} ${response.statusText}`);
+          }
+        }
+        
+        const result = await response.json();
+        
         if (!result) {
           console.error(`API returned empty result for course ID ${selectedCourseId}`);
           throw new Error(`Course with ID ${selectedCourseId} not found`);
         }
+        console.log(`Successfully fetched course details for ID ${selectedCourseId}:`, result);
         return result;
       } catch (error: any) {
-        console.error(`Error fetching course ${selectedCourseId}:`, error);
+        console.error(`Error in courseDetailQuery for ID ${selectedCourseId}:`, error);
         toast({
           title: "Error loading course",
           description: `Could not load course details: ${error.message}`,
@@ -123,16 +141,9 @@ export function useMyCourses(): UseMyCoursesReturn {
 
   // Function to select a course for viewing
   const selectCourse = (courseId: number) => {
-    console.log(`selectCourse called with ID: ${courseId}`);
-    // Reset current selectedCourse data when selecting a new course
-    // This prevents showing stale data while loading
-    if (selectedCourseId !== courseId) {
-      // Only update if it's a different course to avoid loops
-      setSelectedCourseId(null); // Clear first to ensure a clean state
-      setTimeout(() => setSelectedCourseId(courseId), 0); // Set in next tick to force a clean re-fetch
-    } else {
-      setSelectedCourseId(courseId); // Same course, just refresh
-    }
+    console.log(`useMyCourses: selectCourse called with ID: ${courseId}`);
+    setSelectedCourseId(courseId);
+    console.log(`useMyCourses: selectedCourseId set to ${courseId}`);
   };
 
   // Function to update course progress

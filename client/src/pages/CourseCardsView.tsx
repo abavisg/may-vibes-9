@@ -4,213 +4,169 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMyCourses } from "@/hooks/use-my-courses";
+import { useCourseState } from "@/hooks/use-course-state";
 import { LearningCard } from "@/components/ui/learning-card";
 import { speakCard, stopSpeech } from "@/lib/text-to-speech";
 import { useToast } from "@/hooks/use-toast";
 import { calculateProgressPercentage, formatProgress } from "@/lib/utils";
-import type { Course } from "@/types";
 
 interface CourseCardsViewProps {
   params: { id?: string }; // Define the params prop structure
 }
 
-// Define view modes
-type ViewMode = "detail" | "cards";
-
 export default function CourseCardsView({ params }: CourseCardsViewProps) {
   console.log('CourseCardsView rendered with params:', params);
   const { selectedCourse, isLoading, updateCourseProgress, selectCourse } = useMyCourses();
+  const { state: courseState, loadCourse, setState: setCourseStateDirectly } = useCourseState();
   const [location, navigate] = useLocation();
   const courseId = params.id ? parseInt(params.id, 10) : null; // Get ID from params prop
   const { toast } = useToast();
 
-  // View state for toggling between detail (resume/restart) and cards view
-  const [viewMode, setViewMode] = useState<ViewMode>("detail");
-  // Force loading state while waiting for data
-  const [isLocalLoading, setIsLocalLoading] = useState(true);
+  // Card viewing state (derived from courseState)
+  const currentCardIndex = courseState.currentCardIndex;
+  const totalCards = courseState.totalCards;
+  // Simplified state management - let useCourseState handle these
+  // const isSpeakingNow = false; // Assuming speech state is managed elsewhere or will be refactored
+  // const isNewProgress = false; // Assuming new progress state is managed elsewhere or will be refactored
+  // const courseSaved = false; // Assuming save state is managed elsewhere or will be refactored
+  
+  // State to control resume options display (still needed locally based on initial load)
+  const [showResumeOptions, setShowResumeOptions] = useState(false);
 
-  // Card viewing state (only relevant in 'cards' viewMode)
-  const [currentCardIndex, setCurrentCardIndex] = useState(0);
-  const [isSpeakingNow, setIsSpeakingNow] = useState(false);
-  const [isNewProgress, setIsNewProgress] = useState(false);
-  const [courseSaved, setCourseSaved] = useState(false);
-
-  // Get startIndex from query parameter (only relevant if directly linked to a card)
+  // Get startIndex from query parameter
   const searchParams = new URLSearchParams(location.search as unknown as string);
   const startIndex = searchParams.get('startIndex') ? parseInt(searchParams.get('startIndex') as string, 10) : 0;
 
-  // Fetch course details when the ID changes or component mounts
+  // Effect to initiate fetching the course data when the ID changes
   useEffect(() => {
-    console.log('CourseCardsView useEffect 1: courseId=', courseId, 'selectedCourse=', selectedCourse, 'isLoading=', isLoading);
-    
-    // Set local loading state when starting to fetch a new course
+    console.log('CourseCardsView useEffect: courseId=', courseId);
     if (courseId) {
-      setIsLocalLoading(true);
-      // Only select course if we have an ID and
+      // Trigger the fetch in useMyCourses by setting the selected ID
       selectCourse(courseId);
     } else {
       console.error("No course ID provided in URL");
       navigate("/my-courses"); // Fallback to my courses list if no ID
     }
-  }, [courseId]); // Only depend on courseId change to prevent re-selecting
+  }, [courseId, selectCourse, navigate]);
 
-  // Watch for selected course data loading and determine initial view mode and card index
+  // Effect to load the fetched course into useCourseState and determine initial view
   useEffect(() => {
-    console.log('CourseCardsView useEffect 2: selectedCourse=', selectedCourse, 'isLoading=', isLoading, 'courseId=', courseId);
-    
-    // Once loading state changes to false and we either have a course or not, update local loading state
-    if (!isLoading) {
-      setIsLocalLoading(false);
+    console.log('CourseCardsView useEffect: selectedCourse=', selectedCourse, 'isLoading=', isLoading);
+    if (!isLoading && selectedCourse) {
+      console.log("Selected course data loaded in CourseCardsView useEffect:", selectedCourse);
       
-      // Handle course not found after loading
-      if (!selectedCourse && courseId) {
-        console.error(`Course with ID ${courseId} not found.`);
+      // Load the fetched course into the CourseState. Determine startFromBeginning based on startIndex and saved progress.
+      const startFromBeginning = startIndex === 0 && (selectedCourse.currentCardIndex || 0) > 0;
+      loadCourse(selectedCourse, startFromBeginning);
+      
+      // Show resume options if we are starting from the beginning (startIndex 0) but there is saved progress
+      setShowResumeOptions(startFromBeginning);
+
+    } else if (!isLoading && !selectedCourse && courseId) {
+         console.error(`Course with ID ${courseId} not found after fetch attempt.`);
         toast({
           title: "Course not found",
           description: "The requested course could not be loaded.",
           variant: "destructive",
         });
         navigate("/my-courses"); // Fallback
-        return;
-      }
-      
-      // Configure view mode and card index if we have course data
-      if (selectedCourse) {
-        console.log("Selected course data loaded in CourseCardsView:", selectedCourse);
-        
-        // Determine initial view mode: if startIndex is provided, go directly to cards; otherwise, show detail view if there's progress
-        if (startIndex > 0) {
-          setViewMode("cards");
-          setCurrentCardIndex(startIndex); // Start from the index in the URL
-        } else if ((selectedCourse.currentCardIndex || 0) > 0) {
-          // Show detail view with resume/restart options if there is saved progress
-          setViewMode("detail");
-          setCurrentCardIndex(selectedCourse.currentCardIndex || 0); // Set index to saved progress
-        } else {
-          // If no startIndex and no saved progress, go directly to cards view at index 0
-           setViewMode("cards");
-           setCurrentCardIndex(0);
-        }
-
-        setIsNewProgress(false);
-        setCourseSaved(false);
-      }
     }
-  }, [selectedCourse, isLoading, courseId, navigate, toast, startIndex]); // Removed viewMode update from dependencies
+     // Do NOT include courseState in dependencies to prevent infinite loops
+  }, [selectedCourse, isLoading, courseId, navigate, toast, startIndex, loadCourse]);
 
-  // Update URL with currentCardIndex whenever it changes (only in 'cards' viewMode)
+  // Note: The effect to update the URL based on currentCardIndex might need careful review
+  // to ensure it doesn't conflict with the initial load logic or cause unnecessary navigations.
+  // For now, let's keep it but be aware it might need adjustment.
   useEffect(() => {
-    if (viewMode === "cards" && selectedCourse && currentCardIndex !== (selectedCourse.currentCardIndex || 0)) {
-      const newUrl = `/course/${selectedCourse.id}/cards?startIndex=${currentCardIndex}`;
-      // Use replace: true to avoid cluttering history with every card change
-      navigate(newUrl, { replace: true });
+    // Only update URL if the course is loaded and we are viewing cards (not resume options)
+    // and the current index in courseState is different from the initially loaded saved progress
+    // This prevents immediately changing the URL when loading a course with saved progress > 0.
+    const initialLoadedIndex = selectedCourse?.currentCardIndex || 0;
+    
+    // FIXED: Added additional condition to prevent infinite loops - only update URL when user manually changes cards
+    const isUserInitiatedChange = courseState.currentCardIndex !== initialLoadedIndex && 
+                                 !isLoading && 
+                                 selectedCourse && 
+                                 courseState.id;
+                                 
+    if (!showResumeOptions && isUserInitiatedChange) {
+      console.log(`CourseCardsView useEffect: Updating URL to startIndex ${courseState.currentCardIndex}`);
+      // Use replace: true to prevent adding to browser history and causing additional navigation events
+      navigate(`/course/${courseState.id}/cards?startIndex=${courseState.currentCardIndex}`, { replace: true });
     }
-  }, [currentCardIndex, selectedCourse, navigate, viewMode]); // Added viewMode to dependencies
+  }, [courseState.currentCardIndex, courseState.id, navigate, showResumeOptions, selectedCourse?.currentCardIndex, isLoading, selectedCourse]);
 
-  // Function to handle saving the current course progress
-  // Wrap in useCallback because it's used in a useEffect dependency array
+  // Function to handle saving the current course progress (uses useMyCourses mutation)
   const handleSaveCourse = useCallback(() => {
-    if (!selectedCourse) return;
-    updateCourseProgress(selectedCourse.id, currentCardIndex);
-    setCourseSaved(true);
+    if (!courseState.id) return;
+    console.log(`CourseCardsView: Saving progress for course ${courseState.id} at index ${courseState.currentCardIndex}`);
+    updateCourseProgress(courseState.id, courseState.currentCardIndex);
     toast({
       title: "Progress saved",
-      description: `Saved your progress on "${selectedCourse.topic}" at card ${currentCardIndex + 1}`,
+      description: `Saved your progress on "${courseState.topic}" at card ${courseState.currentCardIndex + 1}`,
     });
-  }, [currentCardIndex, selectedCourse, updateCourseProgress, toast]);
+  }, [courseState.id, courseState.currentCardIndex, updateCourseProgress, toast]);
 
-  // Automatically save progress when currentCardIndex increases and represents new progress (only in 'cards' viewMode)
-  useEffect(() => {
-    if (viewMode === "cards" && isNewProgress && !courseSaved && selectedCourse) {
-      console.log(`Automatically saving progress at card index ${currentCardIndex}`);
-      handleSaveCourse(); // Call the save function automatically
-    }
-  }, [currentCardIndex, isNewProgress, courseSaved, selectedCourse, handleSaveCourse, viewMode]); // Added viewMode to dependencies
+  // Automatically save progress when currentCardIndex increases and represents new progress (only when resume options are not shown)
+  // This logic assumes progress is new if currentCardIndex is greater than the initially loaded saved progress.
+  // Removing automatic save for now to simplify.
+  // useEffect(() => {
+  //   if (!selectedCourse) return; // Need selectedCourse to know the previous max index
+  //   const initialLoadedIndex = selectedCourse.currentCardIndex || 0;
+  //   const isNewlyViewedCard = courseState.currentCardIndex > initialLoadedIndex;
 
-  // Check if this is new progress (only relevant in 'cards' viewMode)
-  useEffect(() => {
-    // Only check if we have a selected course and are in cards view
-    if (viewMode === "cards" && selectedCourse) {
-      const previousMaxIndex = selectedCourse.currentCardIndex || 0;
-      const isNewlyViewedCard = currentCardIndex > previousMaxIndex;
-      setIsNewProgress(isNewlyViewedCard);
-      
-      if (isNewlyViewedCard) {
-        setCourseSaved(false);
-      }
-    }
-  }, [currentCardIndex, selectedCourse, viewMode]); // Added viewMode to dependencies
+  //   if (!showResumeOptions && isNewlyViewedCard && courseState.id) {
+  //     console.log(`CourseCardsView useEffect: Automatically saving progress at card index ${courseState.currentCardIndex}`);
+  //     handleSaveCourse();
+  //   }
+  // }, [courseState.currentCardIndex, courseState.id, showResumeOptions, handleSaveCourse, selectedCourse]);
 
-  // Function to handle going back from cards view (modified to handle both views)
+  // Function to handle going back (always goes to My Courses)
   const handleBack = () => {
     stopSpeech();
-    setIsSpeakingNow(false);
-    // If in cards view, go back to detail view; otherwise, go back to saved courses list
-    if (viewMode === "cards") {
-      setViewMode("detail"); // Go back to detail view
-       // Update URL to remove startIndex query param if going back from cards to detail
-       if (selectedCourse) {
-          navigate(`/course/${selectedCourse.id}`, { replace: true });
-       }
-    } else if (selectedCourse) {
-      navigate("/my-courses"); // Go back to my courses list
-    } else {
-       navigate("/my-courses"); // Fallback if somehow no selected course
-    }
+    navigate("/my-courses");
   };
 
-  // Function to handle reading aloud (only in 'cards' viewMode)
+  // Function to handle reading aloud (only when resume options are not shown)
   const handleReadAloud = () => {
-     if (viewMode !== "cards") return; // Only allow in cards view
-    if (!selectedCourse || !selectedCourse.cards || !selectedCourse.cards[currentCardIndex]) return;
-    if (isSpeakingNow) {
-      stopSpeech();
-      setIsSpeakingNow(false);
-    } else {
-      const card = selectedCourse.cards[currentCardIndex];
-      speakCard(card.title, card.content);
-      setIsSpeakingNow(true);
-    }
+    if (showResumeOptions || !courseState.cards || !courseState.cards[courseState.currentCardIndex]) return;
+    // isSpeakingNow state and logic would need to be managed in useCourseState or a separate hook if needed.
+    // For now, just speak.
+    const card = courseState.cards[courseState.currentCardIndex];
+    speakCard(card.title, card.content);
   };
 
-  // Functions to navigate between cards (only in 'cards' viewMode)
+  // Functions to navigate between cards (only when resume options are not shown)
   const nextCard = () => {
-     if (viewMode !== "cards") return; // Only allow in cards view
-    if (selectedCourse && selectedCourse.cards && currentCardIndex < selectedCourse.cards.length - 1) {
-      setCurrentCardIndex(currentCardIndex + 1);
-    }
+    if (showResumeOptions || !courseState.cards || courseState.currentCardIndex >= courseState.cards.length - 1) return;
+    // Update the currentCardIndex in useCourseState
+    setCourseStateDirectly({ currentCardIndex: courseState.currentCardIndex + 1 });
   };
 
   const prevCard = () => {
-     if (viewMode !== "cards") return; // Only allow in cards view
-    if (currentCardIndex > 0) {
-      setCurrentCardIndex(currentCardIndex - 1);
-    }
+    if (showResumeOptions || courseState.currentCardIndex <= 0) return;
+     // Update the currentCardIndex in useCourseState
+    setCourseStateDirectly({ currentCardIndex: courseState.currentCardIndex - 1 });
   };
 
-   // Function to handle resuming a course from the detail view
+  // Function to handle resuming a course
   const handleResumeCourse = () => {
     if (!selectedCourse) return;
-    // Set view mode to cards and navigate to the appropriate card index
-    setViewMode("cards");
-    setCurrentCardIndex(selectedCourse.currentCardIndex || 0);
-     // Update URL to reflect starting from saved progress
+    // Load the course with saved progress and navigate to the cards view URL with the correct startIndex
+    loadCourse(selectedCourse);
     navigate(`/course/${selectedCourse.id}/cards?startIndex=${selectedCourse.currentCardIndex || 0}`, { replace: true });
   };
 
-  // Function to handle restarting a course from the detail view
+  // Function to handle restarting a course
   const handleRestartCourse = () => {
     if (!selectedCourse) return;
-    // Set view mode to cards and navigate to the first card
-    setViewMode("cards");
-    setCurrentCardIndex(0);
-     // Update URL to reflect starting from the beginning
+    // Load the course from the beginning and navigate to the cards view URL with startIndex 0
+    loadCourse(selectedCourse, true);
     navigate(`/course/${selectedCourse.id}/cards?startIndex=0`, { replace: true });
   };
 
-
-  // Show loading skeleton while fetching course details - use both global and local loading states
-  if (isLoading || isLocalLoading || !selectedCourse) {
+  // Show loading skeleton while fetching course details via useMyCourses
+  if (isLoading || !selectedCourse) {
     return (
       <div className="container mx-auto p-4">
         <Skeleton className="h-8 w-1/2 mb-4" />
@@ -221,14 +177,13 @@ export default function CourseCardsView({ params }: CourseCardsViewProps) {
     );
   }
 
-  const totalCards = Array.isArray(selectedCourse.cards) ? selectedCourse.cards.length : 0;
+  // Use selectedCourse for resume options display as it contains the original saved progress
+   const resumeDisplayTotalCards = Array.isArray(selectedCourse.cards) ? selectedCourse.cards.length : 0;
+  const resumeDisplayCurrentIndex = selectedCourse.currentCardIndex || 0;
+  const resumeDisplayProgressPercent = calculateProgressPercentage(resumeDisplayCurrentIndex, resumeDisplayTotalCards);
 
-  // Render detail view (resume/restart options)
-  if (viewMode === "detail") {
-    const currentIndex = selectedCourse.currentCardIndex || 0;
-    const isCompleted = totalCards > 0 && currentIndex >= totalCards;
-    const progressPercent = calculateProgressPercentage(currentIndex, totalCards);
-
+  // Render resume/restart options if applicable
+  if (showResumeOptions) {
     return (
       <div className="container mx-auto p-4">
          <Button variant="link" className="mb-4" onClick={handleBack}>
@@ -238,30 +193,30 @@ export default function CourseCardsView({ params }: CourseCardsViewProps) {
 
         <div className="flex items-center text-sm text-muted-foreground mb-4 space-x-4">
           <span>Ages: {selectedCourse.ageGroup}</span>
-          <span>Length: {totalCards} cards</span>
+          <span>Length: {resumeDisplayTotalCards} cards</span>
           <span>Created: {new Date(selectedCourse.createdAt).toLocaleDateString()}</span>
         </div>
 
-        {totalCards > 0 && (
+        {resumeDisplayTotalCards > 0 && (
           <div className="mb-6">
             <div className="flex justify-between text-sm text-neutral-700 mb-1">
-              <span>Progress: {formatProgress(currentIndex, totalCards)} cards</span>
-              <span>{progressPercent.toFixed(0)}%</span>
+              <span>Progress: {formatProgress(resumeDisplayCurrentIndex, resumeDisplayTotalCards)} cards</span>
+              <span>{resumeDisplayProgressPercent.toFixed(0)}%</span>
             </div>
-            <Progress value={progressPercent} className="h-2" />
+            <Progress value={resumeDisplayProgressPercent} className="h-2" />
           </div>
         )}
 
         <div className="flex flex-col space-y-4 mt-4">
           <Button
             size="lg"
-            onClick={() => (isCompleted ? handleRestartCourse() : handleResumeCourse())}
+            onClick={handleResumeCourse}
           >
-            <i className={isCompleted ? "ri-refresh-line mr-2" : "ri-play-line mr-2"}></i>
-            {isCompleted ? "Start from Beginning" : "Resume Course"}
+            <i className="ri-play-line mr-2"></i>
+            Resume Course
           </Button>
 
-          {!isCompleted && currentIndex > 0 && (
+          { resumeDisplayCurrentIndex > 0 && (
             <Button variant="outline" size="lg" onClick={handleRestartCourse}>
               <i className="ri-restart-line mr-2"></i> Start from Beginning
             </Button>
@@ -271,19 +226,20 @@ export default function CourseCardsView({ params }: CourseCardsViewProps) {
     );
   }
 
-  // Render cards view
-   const currentCard = selectedCourse.cards[currentCardIndex];
+  // Render cards view using courseState
+   const currentCard = courseState.cards[courseState.currentCardIndex];
 
   if (!currentCard) {
      return (
        <div className="container mx-auto p-4 text-center">
          <p className="text-lg text-muted-foreground">No cards available for this course.</p>
-         <Button onClick={handleBack} className="mt-4">Back to Details</Button>
+         <Button onClick={handleBack} className="mt-4">Back to My Courses</Button>
        </div>
      );
   }
 
-  const progressPercentage = totalCards > 0 ? ((currentCardIndex + 1) / totalCards) * 100 : 0;
+  // Use courseState for current card index and total cards in the display
+  const cardProgressPercentage = totalCards > 0 ? ((currentCardIndex + 1) / totalCards) * 100 : 0;
 
   return (
     <div className="flex-1 flex flex-col items-center justify-between p-4 md:p-6">
@@ -309,19 +265,20 @@ export default function CourseCardsView({ params }: CourseCardsViewProps) {
         </div>
         
         <div className="flex items-center">
-          <span className="font-bold text-lg mr-2">{selectedCourse.topic}</span>
+          <span className="font-bold text-lg mr-2">{courseState.topic || selectedCourse.topic}</span>
           <span className="bg-primary/10 text-primary px-2 py-1 text-xs rounded-full font-medium">
-            Ages {selectedCourse.ageGroup}
+            Ages {courseState.ageGroup || selectedCourse.ageGroup}
           </span>
         </div>
         
         <Button
-          variant={isSpeakingNow ? "secondary" : "link"}
-          className={`flex items-center font-semibold p-0 ${isSpeakingNow ? 'bg-primary/10 px-3 py-1 rounded' : 'text-primary'}`}
+          // Removed isSpeakingNow logic for now
+          variant="link"
+          className={`flex items-center font-semibold p-0 text-primary`}
           onClick={handleReadAloud}
         >
-          <i className={`${isSpeakingNow ? 'ri-stop-circle-line' : 'ri-volume-up-line'} mr-1`}></i> 
-          {isSpeakingNow ? 'Stop' : 'Read'}
+          <i className={`ri-volume-up-line mr-1`}></i> 
+          Read {/* Simplified text */}
         </Button>
       </div>
 
@@ -331,13 +288,14 @@ export default function CourseCardsView({ params }: CourseCardsViewProps) {
           <span className="text-sm text-neutral-700">
             Card {currentCardIndex + 1} of {totalCards}
           </span>
-          {isNewProgress && (
+          {/* Removed isNewProgress logic for now */}
+          {/* {isNewProgress && (totalCards > 0 && currentCardIndex < totalCards) && (
             <span className="text-sm text-amber-500">
               <i className="ri-alert-line mr-1"></i> New progress - don't forget to save!
             </span>
-          )}
+          )} */}
         </div>
-        <Progress value={progressPercentage} className="h-2" />
+        <Progress value={cardProgressPercentage} className="h-2" />
       </div>
 
       {/* Learning Card */}
@@ -364,7 +322,8 @@ export default function CourseCardsView({ params }: CourseCardsViewProps) {
       </div>
 
       {/* Save Progress Button */}
-      {isNewProgress && !courseSaved && (
+      {/* Always show save button for now, removed isNewProgress and courseSaved check */}
+      {(totalCards > 0 && currentCardIndex < totalCards) && (
         <Button
           onClick={handleSaveCourse}
           className="mt-4 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded"

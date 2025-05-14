@@ -1,9 +1,9 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useLocation } from "wouter";
 import CourseLength from "@/components/ui/course-length";
 import { useCourseState } from "@/hooks/use-course-state";
 import { useMyCourses } from "@/hooks/use-my-courses";
-import { CourseLength as CourseLengthType } from "@/types";
+import type { CourseLength as CourseLengthType } from "@/types";
 
 export default function CourseLengthPage() {
   const [, navigate] = useLocation();

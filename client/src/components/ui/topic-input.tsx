@@ -1,4 +1,4 @@
-import { FC } from "react";
+import type { FC } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useCourseState } from "@/hooks/use-course-state";

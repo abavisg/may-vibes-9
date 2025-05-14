@@ -1,4 +1,4 @@
-import { FC } from "react";
+import type { FC } from "react";
 import { Button } from "@/components/ui/button";
 import { useCourseState } from "@/hooks/use-course-state";
 import type { CourseLength as CourseLengthType } from "@/types";
@@ -46,7 +46,7 @@ const LENGTH_OPTIONS: LengthOption[] = [
 ];
 
 export const CourseLength: FC<CourseLengthProps> = ({ onNext, onBack }) => {
-  const { state, setCourseLength, generateCards } = useCourseState();
+  const { state, setCourseLength } = useCourseState();
 
   const handleLengthSelection = (courseLength: CourseLengthType) => {
     setCourseLength(courseLength);
