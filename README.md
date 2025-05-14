@@ -30,7 +30,15 @@ This project is a web application with a React frontend and an Express.js backen
 ---
 
 ## Architecture
-The project follows a client-server architecture. The client is a React application that communicates with the Express.js backend. The backend handles API requests, interacts with the database (local PostgreSQL via Drizzle ORM), and communicates with Ollama for AI-powered card generation.
+The project follows a client-server architecture with separated development environments:
+
+- **Client**: A React application built with Vite, running on port 5173
+- **Server**: An Express.js backend running on port 8080 that handles API requests, database interactions, and AI functionality
+- **API Communication**: The client communicates with the server via HTTP requests with proper CORS configuration
+- **Database**: Local PostgreSQL database accessed via Drizzle ORM
+- **AI Integration**: Ollama for AI-powered card generation
+
+This architecture allows for independent development and deployment of the client and server components while maintaining efficient communication between them.
 
 ---
 
@@ -43,7 +51,7 @@ The project follows a client-server architecture. The client is a React applicat
 
 ---
 
-## Implementation Status and Remaining Work
+## Implementation Status and Achievements
 
 **Implemented:**
 - Core backend API endpoints for card generation, saving courses, retrieving courses, and updating course progress.
@@ -63,12 +71,22 @@ The project follows a client-server architecture. The client is a React applicat
 - Modular codebase with clear separation of concerns and routing.
 - Parent mode accessible via the /parent route.
 
+**Recent Improvements:**
+- **Separated Client-Server Development**: Configured independent client and server with proper port management
+- **Fixed MIME Type Errors**: Implemented standalone Vite server solution to prevent browser MIME type conflicts
+- **Resolved React Rendering Issues**: Fixed infinite re-rendering loops in CourseCardsView component
+- **Enhanced Data Prefetching**: Implemented React Query pre-caching for smoother transitions between views
+- **Improved Cache Management**: Added robust validation and fallback mechanisms for cache integrity
+- **Fixed Navigation Flow**: Added consistent navigation elements across all views
+- **Performance Optimization**: Reduced unnecessary re-renders with React.memo and proper dependency management
+- **Mobile-Friendly UI**: Improved layout and navigation for better mobile experience
+- **Consistent Error Handling**: Added comprehensive error boundaries and user-friendly messages
+
 **Remaining Work:**
 - **User Authentication and Authorization:** Implement secure user authentication on the backend and integrate authentication status and token handling on the client-side to protect routes and data.
 - **Refinement of Backend Logic:** Review and enhance the details of database interactions (`server/storage.ts`) for completeness, error handling, and robustness.
 - **Enhanced Error Handling and User Feedback:** Implement more detailed and user-friendly error handling and notifications throughout the application.
 - **Real-time Features (if planned):** Implement WebSocket communication on both the server and client if real-time functionality is part of the project scope.
-- **Mobile Responsiveness:** Further optimize the UI for smaller screens and touch interactions.
 - **Offline Support:** Implement service workers for offline functionality.
 - **Analytics and Tracking:** Add usage analytics to understand user learning patterns.
 
@@ -117,21 +135,41 @@ The project follows a client-server architecture. The client is a React applicat
     ```bash
     npm run dev
     ```
-    This will start the client and server in development mode using Vite and tsx.
+    This starts both the client (on port 5173) and server (on port 8080) in development mode.
+    
+    The client and server can also be started independently:
+    ```bash
+    # Start only the client
+    npm run dev:client
+    
+    # Start only the server
+    npm run dev:server
+    ```
+
 -   **Build:**
     ```bash
     npm run build
     ```
-    This will build the client and server for production.
+    This will build both the client and server for production.
+
 -   **Start:**
     ```bash
     npm run start
     ```
     This will start the production server.
+
 -   **Type Check:**
     ```bash
     npm run check
     ```
+
+---
+
+## Troubleshooting
+
+- **MIME Type Errors**: If you encounter MIME type errors in the browser, ensure you're using the client URL (port 5173) for development, not the server port.
+- **React Query Cache Issues**: If course data isn't loading properly, try clearing your browser cache or implementing a forced refresh.
+- **API Connection Errors**: Make sure both client and server are running, and CORS is properly configured in development.
 
 ---
 
