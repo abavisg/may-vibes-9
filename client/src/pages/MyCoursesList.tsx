@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useMyCourses } from "@/hooks/use-my-courses";
 import { calculateProgressPercentage, formatProgress } from "@/lib/utils"; // Import utils from the correct path
 import type { Course } from "@/types"; // Import Course type
+import { queryClient } from "@/lib/queryClient"; // Use the queryClient singleton
 
 // Get age-appropriate styling (can be moved to a utils file later)
 const getAgeGroupColor = (ageGroup: string) => {
@@ -29,12 +30,37 @@ export default function MyCoursesList() { // Renamed component
   const handleSelectCourse = (course: Course) => {
     console.log(`Card clicked for course ID: ${course.id}`);
     
+    // Better pre-caching mechanism: ensure we have a complete Course object with all fields
+    console.log(`Pre-caching course data:`, course);
+    
+    // Deep copy the course to ensure we're working with a complete object
+    const courseCopy = {
+      ...course,
+      // Ensure these fields are always present
+      id: course.id,
+      topic: course.topic,
+      ageGroup: course.ageGroup,
+      cards: Array.isArray(course.cards) ? [...course.cards] : [],
+      currentCardIndex: course.currentCardIndex || 0,
+      createdAt: course.createdAt || new Date().toISOString(),
+    };
+    
+    // Cache the complete course object
+    queryClient.setQueryData(['/api/course', course.id], courseCopy);
+    
+    // Double-check that the course was cached properly
+    const cachedCourse = queryClient.getQueryData(['/api/course', course.id]);
+    console.log(`Cached course data check:`, cachedCourse);
+    
+    // Add a fallback mechanism just in case the cache fails
+    if (!cachedCourse || typeof cachedCourse !== 'object') {
+      console.warn("Cache failed, using a more explicit approach");
+      queryClient.setQueryData(['/api/course', course.id], courseCopy);
+    }
+    
     // Navigate to the course cards view, including the currentCardIndex as startIndex
     navigate(`/course/${course.id}/cards?startIndex=${course.currentCardIndex || 0}`);
     console.log(`Navigating to: /course/${course.id}/cards?startIndex=${course.currentCardIndex || 0}`);
-
-    // Removed debugging log
-    //console.log(`Debugging: Card with ID ${course.id} was clicked.`);
   };
   return (
     <div className="container mx-auto p-4">
